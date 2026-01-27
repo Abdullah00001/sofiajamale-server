@@ -1,0 +1,45 @@
+services:
+  redis:
+      image: redis:latest
+      container_name: redis_container
+      command: redis-server --requirepass myStrongRedisPassword
+      ports:
+        - 6379:6379
+      networks:
+        - backend_network
+      volumes:
+        - redis_volume:/data
+  redis-ui:
+    image: rediscommander/redis-commander:latest
+    container_name: redis_ui_container
+    environment:
+      - REDIS_HOSTS=local:redis:6379:myStrongRedisPassword
+    ports:
+      - 8081:8081
+    networks:
+      - backend_network
+    depends_on:
+      - redis
+  server:
+    build:
+      context: ./
+      dockerfile: Dockerfile.dev
+    container_name: server_container
+    ports:
+      - 5000:5000
+    networks:
+      - backend_network
+    volumes:
+      - './:/usr/src/app'
+      - /usr/src/app/node_modules
+    stop_grace_period: 8s
+    depends_on:
+       - redis
+
+networks:
+  backend_network:
+    name: backend_network
+    driver: bridge
+
+volumes:
+  redis_volume:
