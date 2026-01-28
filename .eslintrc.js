@@ -61,5 +61,5 @@ module.exports = {
     'no-debugger': 'warn',
     'no-useless-escape': 'off',
   },
-  ignorePatterns: ['dist/', 'node_modules/'],
+  ignorePatterns: ['dist/', 'node_modules/', 'scripts/', '.eslintrc.js'],
 };

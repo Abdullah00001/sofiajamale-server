@@ -5,11 +5,18 @@ import dotenv from 'dotenv';
 import app from '@/app';
 import connectDatabase  from '@/configs/db.config';
 import {connectRedis} from '@/configs/redis.config';
+import registerContainers from '@/container';
 import { shutdown } from '@/utils/index';
+import 'reflect-metadata';
 
 const { config } = dotenv;
 
+// dotenv config initialization
 config();
+
+// container initialization
+registerContainers()
+
 
 const port: number = Number(process.env.PORT) || 5000;
 
