@@ -1,8 +1,11 @@
 import { Server } from 'node:http';
 
+import { container } from 'tsyringe';
+
 import { disconnectDatabase } from '@/configs/db.config';
-import { disconnectRedis } from '@/configs/redis.config';
 import { logger } from '@/configs/index';
+import { disconnectRedis } from '@/configs/redis.config';
+import { QueueManager } from '@/queue/queue.manager';
 
 type TShutdown = {
   reason: string;
@@ -44,7 +47,7 @@ const shutdown = async ({
         resolve();
       });
     });
-
+    await container.resolve(QueueManager).shutdown();
     // Close DB, Redis, queues here
     await disconnectDatabase();
     await disconnectRedis();

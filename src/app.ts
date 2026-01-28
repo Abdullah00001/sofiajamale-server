@@ -9,6 +9,7 @@ import { morganMessageFormat, streamConfig } from '@/configs/morgan.config';
 import { baseUrl } from '@/const';
 import { globalErrorMiddleware } from '@/middlewares/globalError.middlewares';
 import v1Routes from '@/routes/v1/index';
+import "@/queue/workers/index"
 
 const app: Application = express();
 
