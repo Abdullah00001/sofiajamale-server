@@ -13,7 +13,11 @@ services:
     image: rediscommander/redis-commander:latest
     container_name: redis_ui_container
     environment:
-      - REDIS_HOSTS=local:redis:6379:myStrongRedisPassword
+      # Format: connectionName:host:port:dbIndex:password
+      - REDIS_HOSTS=local:redis:6379:0:myStrongRedisPassword
+      # This helps the UI start even if it takes a second to find the redis container
+      - HTTP_USER=admin
+      - HTTP_PASSWORD=admin 
     ports:
       - 8081:8081
     networks:

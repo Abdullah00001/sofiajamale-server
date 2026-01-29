@@ -4,21 +4,24 @@ import { createServer, Server } from 'node:http';
 
 import dotenv from 'dotenv';
 
-import app from '@/app';
 import connectDatabase from '@/configs/db.config';
-import { connectRedis } from '@/configs/redis.config';
+import { connectRedis, initializeRedis } from '@/configs/redis.config';
 import registerContainers from '@/container';
+import { startWorkers } from '@/queue/workers/index';
 import { shutdown } from '@/utils/index';
 import '@/queue/container';
-import '@/utils/container';
 
 const { config } = dotenv;
 
 // dotenv config initialization
 config();
 
+initializeRedis();
+
 // container initialization
 registerContainers();
+
+import app from '@/app';
 
 const port: number = Number(process.env.PORT) || 5000;
 
@@ -27,6 +30,7 @@ const server: Server = createServer(app);
 async function main(): Promise<void> {
   await connectDatabase();
   await connectRedis();
+  startWorkers();
   server.listen(port, () => {
     console.log(`Server Running On Port : ${port}`);
   });

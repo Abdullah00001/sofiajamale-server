@@ -1,5 +1,4 @@
-import corsConfiguration from './cors.config';
-
+import corsConfiguration from '@/configs/cors.config';
 import logger from '@/configs/logger.config';
 
 export { logger, corsConfiguration };

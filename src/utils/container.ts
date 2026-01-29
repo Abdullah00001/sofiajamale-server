@@ -1,22 +1,22 @@
 import { container } from 'tsyringe';
 
-import { env } from '@/env';
 import { CookieUtils } from '@/utils/cookie.utils';
 import { JwtUtils } from '@/utils/jwt.utils';
-import { OTP_SECRET_TOKEN } from '@/utils/otp.utils';
+import { OtpUtils } from '@/utils/otp.utils';
 import { PasswordUtils } from '@/utils/password.utils';
+import { SendEmail } from '@/utils/sendEmail.utils';
+import { SystemUtils } from '@/utils/system.utils';
 
 /**
  * Utils container
  * Register all utility-level singletons here
  */
 
-container.registerSingleton(CookieUtils);
-
-container.register(OTP_SECRET_TOKEN, {
-  useValue: env.OTP_HASH_SECRET,
-});
-
-container.registerSingleton(PasswordUtils);
-
-container.registerSingleton(JwtUtils);
+export const registerUtilsModule = () => {
+  container.registerSingleton(CookieUtils);
+  container.registerSingleton(OtpUtils);
+  container.registerSingleton(PasswordUtils);
+  container.registerSingleton(JwtUtils);
+  container.registerSingleton(SendEmail);
+  container.registerSingleton(SystemUtils);
+};

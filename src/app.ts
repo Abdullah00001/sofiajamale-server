@@ -9,7 +9,7 @@ import { morganMessageFormat, streamConfig } from '@/configs/morgan.config';
 import { baseUrl } from '@/const';
 import { globalErrorMiddleware } from '@/middlewares/globalError.middlewares';
 import v1Routes from '@/routes/v1/index';
-import "@/queue/workers/index"
+
 
 const app: Application = express();
 
@@ -37,6 +37,7 @@ app.get('/health', (req: Request, res: Response) => {
 
 // V1 ROUTES
 app.use(baseUrl.v1, v1Routes);
+
 app.use((req: Request, res: Response) => {
   res.status(404).json({
     success: false,

@@ -11,6 +11,7 @@ type TEnv = {
   REDIS_HOST: string;
   REDIS_PASSWORD: string;
   REDIS_PORT: number;
+  JWT_VERIFY_OTP_PAGE_SECRET_KEY: string;
 };
 
 export default TEnv;

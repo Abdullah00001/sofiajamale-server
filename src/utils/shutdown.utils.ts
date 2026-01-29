@@ -6,6 +6,7 @@ import { disconnectDatabase } from '@/configs/db.config';
 import { logger } from '@/configs/index';
 import { disconnectRedis } from '@/configs/redis.config';
 import { QueueManager } from '@/queue/queue.manager';
+import { WorkerManager } from '@/queue/worker.manager';
 
 type TShutdown = {
   reason: string;
@@ -48,6 +49,7 @@ const shutdown = async ({
       });
     });
     await container.resolve(QueueManager).shutdown();
+    await container.resolve(WorkerManager).shutdown();
     // Close DB, Redis, queues here
     await disconnectDatabase();
     await disconnectRedis();

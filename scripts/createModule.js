@@ -20,7 +20,7 @@ if (!moduleName) {
 
 const ROOT_DIR = path.join(__dirname, '..');
 const SRC_DIR = path.join(ROOT_DIR, 'src');
-const MODULE_DIR = path.join(SRC_DIR, 'module');
+const MODULE_DIR = path.join(SRC_DIR, 'modules');
 const ROOT_CONTAINER = path.join(SRC_DIR, 'container.ts');
 
 const targetModuleDir = path.join(MODULE_DIR, moduleName);
@@ -31,18 +31,27 @@ const pascalName = toPascal(moduleName);
 -------------------------------------------------- */
 
 const controllerTemplate = `
-import { Request, Response } from 'express'
+import { Request, Response, RequestHandler } from 'express'
 import { injectable } from 'tsyringe'
 
-import { ${pascalName}Service } from '@/module/${moduleName}/${moduleName}.services'
+import { BaseController } from '@/core/base_classes/base.controller'
+import { ${pascalName}Service } from '@/modules/${moduleName}/${moduleName}.services'
 
 @injectable()
-export class ${pascalName}Controller {
+export class ${pascalName}Controller extends BaseController {
+  public example: RequestHandler
+
   constructor(
     private readonly ${moduleName}Service: ${pascalName}Service
-  ) {}
+  ) {
+    super()
+    this.example = this.wrap(this._example)
+  }
 
-  example = async (_req: Request, res: Response): Promise<void> => {
+  private async _example(
+    _req: Request,
+    res: Response
+  ): Promise<void> {
     const result = this.${moduleName}Service.example()
     res.status(200).json({ result })
   }
@@ -61,16 +70,25 @@ export class ${pascalName}Service {
 `.trim();
 
 const middlewareTemplate = `
-import { Request, Response, NextFunction } from 'express'
+import { Request, Response, NextFunction, RequestHandler } from 'express'
 import { injectable } from 'tsyringe'
 
+import { BaseMiddleware } from '@/core/base_classes/base.middleware'
+
 @injectable()
-export class ${pascalName}Middleware {
-  handle = (
+export class ${pascalName}Middleware extends BaseMiddleware {
+  public handle: RequestHandler
+
+  constructor() {
+    super()
+    this.handle = this.wrap(this._handle)
+  }
+
+  private async _handle(
     _req: Request,
     _res: Response,
     next: NextFunction
-  ): void => {
+  ): Promise<void> {
     next()
   }
 }
@@ -80,8 +98,8 @@ const routesTemplate = `
 import { Router } from 'express'
 import { container } from 'tsyringe'
 
-import { ${pascalName}Controller } from '@/module/${moduleName}/${moduleName}.controllers'
-import { ${pascalName}Middleware } from '@/module/${moduleName}/${moduleName}.middlewares'
+import { ${pascalName}Controller } from '@/modules/${moduleName}/${moduleName}.controllers'
+import { ${pascalName}Middleware } from '@/modules/${moduleName}/${moduleName}.middlewares'
 
 const router = Router()
 
@@ -96,9 +114,9 @@ export default router
 const containerTemplate = `
 import { container } from 'tsyringe'
 
-import { ${pascalName}Controller } from '@/module/${moduleName}/${moduleName}.controllers'
-import { ${pascalName}Middleware } from '@/module/${moduleName}/${moduleName}.middlewares'
-import { ${pascalName}Service } from '@/module/${moduleName}/${moduleName}.services'
+import { ${pascalName}Controller } from '@/modules/${moduleName}/${moduleName}.controllers'
+import { ${pascalName}Middleware } from '@/modules/${moduleName}/${moduleName}.middlewares'
+import { ${pascalName}Service } from '@/modules/${moduleName}/${moduleName}.services'
 
 export const register${pascalName}Module = (): void => {
   container.registerSingleton(${pascalName}Service)
@@ -108,7 +126,7 @@ export const register${pascalName}Module = (): void => {
 `.trim();
 
 const dtoTemplate = `
-import { BaseDTO } from '@/core/base_clases/dto.base'
+import { BaseDTO } from '@/core/base_classes/dto.base'
 `.trim();
 
 const schemaTemplate = `
@@ -196,7 +214,7 @@ export default registerContainers
 
   let content = fs.readFileSync(ROOT_CONTAINER, 'utf8');
 
-  const importLine = `import { register${pascalName}Module } from '@/module/${moduleName}/${moduleName}.container'`;
+  const importLine = `import { register${pascalName}Module } from '@/modules/${moduleName}/${moduleName}.container'`;
   const registerLine = `  register${pascalName}Module()`;
 
   if (!content.includes(importLine)) {

@@ -1,0 +1,29 @@
+import { Router } from 'express';
+import { container } from 'tsyringe';
+
+import { validateReqBody } from '@/middlewares/validateReqBody.middleware';
+import { AuthController } from '@/modules/auth/auth.controllers';
+import { AuthMiddleware } from '@/modules/auth/auth.middlewares';
+import { signupSchema, verifyOtpSchema } from '@/modules/auth/auth.schemas';
+
+const router = Router();
+
+const controller = container.resolve(AuthController);
+const middleware = container.resolve(AuthMiddleware);
+
+router.post(
+  '/auth/signup',
+  validateReqBody(signupSchema),
+  middleware.checkSignupUserExist,
+  controller.signup
+);
+
+router.post(
+  '/auth/verify',
+  validateReqBody(verifyOtpSchema),
+  middleware.checkOtpPageToken,
+  middleware.checkOtp,
+  controller.verifyOtp
+);
+
+export default router;

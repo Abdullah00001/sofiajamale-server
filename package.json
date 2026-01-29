@@ -22,6 +22,7 @@
     "bullmq": "^5.67.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "dayjs": "^1.11.19",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "handlebars": "^4.7.8",
@@ -33,9 +34,11 @@
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.12",
+    "otp-generator": "^4.0.1",
     "reflect-metadata": "^0.2.2",
     "tsyringe": "^4.10.0",
-    "winston": "^3.19.0"
+    "winston": "^3.19.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

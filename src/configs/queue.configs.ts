@@ -1,17 +1,19 @@
 // configs/queue.config.ts
 import { QueueOptions } from 'bullmq';
 
-import redisClient from '@/configs/redis.config';
+import { getRedisClient } from '@/configs/redis.config';
 
-export const defaultQueueOptions: QueueOptions = {
-  connection: redisClient!,
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 2000,
+export function createQueueOptions(): QueueOptions {
+  return {
+    connection: getRedisClient(),
+    defaultJobOptions: {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 2000,
+      },
+      removeOnComplete: true,
+      removeOnFail: false,
     },
-    removeOnComplete: true,
-    removeOnFail: false,
-  },
-};
+  };
+}

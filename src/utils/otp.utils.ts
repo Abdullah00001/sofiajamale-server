@@ -1,17 +1,16 @@
 import crypto from 'crypto';
 
-import { injectable, inject } from 'tsyringe';
+import { injectable } from 'tsyringe';
 
+import { env } from '@/env';
 import { IOtpUtils, TCompareOtpArgs, THashOtpArgs } from '@/types/otp.type';
-
-export const OTP_SECRET_TOKEN = 'OTP_SECRET_TOKEN';
 
 @injectable()
 export class OtpUtils implements IOtpUtils {
-  constructor(
-    @inject(OTP_SECRET_TOKEN)
-    private readonly secret: string
-  ) {}
+  private readonly secret: string;
+  constructor() {
+    this.secret = env.OTP_HASH_SECRET;
+  }
 
   /**
    * Hashes a plain OTP using HMAC-SHA256.

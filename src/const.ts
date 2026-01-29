@@ -14,3 +14,4 @@ export const baseUrl = {
 };
 export const userAccessTokenExpiresIn = '3d';
 export const refreshTokenExpiresIn = '7d';
+export const otpExpireAt = 4;

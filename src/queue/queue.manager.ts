@@ -1,6 +1,6 @@
 import { injectable, injectAll } from 'tsyringe';
 
-import { BaseQueue } from '@/core/base_clases/queue.base';
+import { BaseQueue } from '@/core/base_classes/queue.base';
 import { QUEUE_TOKEN } from '@/core/tokens/queue.token';
 
 @injectable()

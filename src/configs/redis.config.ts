@@ -2,10 +2,10 @@ import { Redis } from 'ioredis';
 
 import { env } from '@/env';
 
-let redisClient:Redis|null=null;
+let redisClient: Redis | null = null;
 
-const initializeRedis=()=>{
-  if(!redisClient){
+export const initializeRedis = () => {
+  if (!redisClient) {
     redisClient = new Redis({
       host: env.REDIS_HOST,
       password: env.REDIS_PASSWORD,
@@ -22,10 +22,10 @@ const initializeRedis=()=>{
       console.error('Redis connection error:', err);
     });
   }
-}
+};
 
 export async function connectRedis() {
-  initializeRedis()
+  initializeRedis();
   if (redisClient && redisClient.status === 'wait') {
     await redisClient.connect();
     console.info('[Redis] connected');
@@ -33,11 +33,17 @@ export async function connectRedis() {
 }
 
 export async function disconnectRedis() {
-  if (redisClient &&  redisClient.status === 'ready') {
+  if (redisClient && redisClient.status === 'ready') {
     console.info('[Redis] Disconnecting...');
     await redisClient.quit();
     console.info('[Redis] Disconnected');
   }
 }
 
-export default redisClient;
+export function getRedisClient(): Redis {
+  if (!redisClient) {
+    throw new Error('Redis client not initialized. Call connectRedis() first.');
+  }
+  
+  return redisClient;
+}

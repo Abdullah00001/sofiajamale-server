@@ -14,4 +14,5 @@ export const env: TEnv = {
   REDIS_HOST: getEnv('REDIS_HOST'),
   REDIS_PASSWORD: getEnv('REDIS_PASSWORD'),
   REDIS_PORT: Number(getEnv('REDIS_PORT')),
+  JWT_VERIFY_OTP_PAGE_SECRET_KEY: getEnv('JWT_VERIFY_OTP_PAGE_SECRET_KEY'),
 };
