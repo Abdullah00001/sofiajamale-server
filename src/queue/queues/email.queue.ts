@@ -3,7 +3,7 @@
 import { injectable } from 'tsyringe';
 
 import { BaseQueue } from '@/core/base_classes/queue.base';
-import { TSignupUserVerifyOtpEmailData } from '@/types/emailQueue.types';
+import { TRecoverAccountSuccessfulEmail, TSignupUserVerifyOtpEmailData } from '@/types/emailQueue.types';
 
 @injectable()
 export class EmailQueue extends BaseQueue {
@@ -15,5 +15,17 @@ export class EmailQueue extends BaseQueue {
     data: TSignupUserVerifyOtpEmailData
   ): Promise<void> {
     await this.queue.add('send-signup-user-verify-otp-email', data);
+  }
+
+  async sendAccountRecoverVerificationOtpEmail(
+    data: TSignupUserVerifyOtpEmailData
+  ): Promise<void> {
+    await this.queue.add('send-account-recover-otp-email', data);
+  }
+
+  async sendAccountRecoverSuccessfulEmail(
+    data: TRecoverAccountSuccessfulEmail
+  ): Promise<void> {
+    await this.queue.add('send-account-recover-account-successful-email', data);
   }
 }

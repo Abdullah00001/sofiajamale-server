@@ -28,4 +28,5 @@ export interface IUser {
 
 export type TVerifyOtp = {
   user: JwtPayload;
+  jwt?: string;
 };

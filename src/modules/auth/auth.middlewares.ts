@@ -6,6 +6,7 @@ import { getRedisClient } from '@/configs/redis.config';
 import { BaseMiddleware } from '@/core/base_classes/base.middleware';
 import User from '@/modules/auth/auth.model';
 import { AccountStatus, IUser } from '@/modules/auth/auth.types';
+import { Role } from '@/types/jwt.types';
 import { JwtUtils } from '@/utils/jwt.utils';
 import { OtpUtils } from '@/utils/otp.utils';
 import { PasswordUtils } from '@/utils/password.utils';
@@ -15,7 +16,7 @@ export class AuthMiddleware extends BaseMiddleware {
   public checkSignupUserExist: RequestHandler;
   public checkOtpPageToken: RequestHandler;
   public checkOtp: RequestHandler;
-  public checkLoginUserExist: RequestHandler;
+  public findUserWithEmail: RequestHandler;
   public checkPassword: RequestHandler;
   constructor(
     private readonly jwtUtils: JwtUtils,
@@ -26,7 +27,7 @@ export class AuthMiddleware extends BaseMiddleware {
     this.checkSignupUserExist = this.wrap(this._checkSignupUserExist);
     this.checkOtpPageToken = this.wrap(this._checkOtpPageToken);
     this.checkOtp = this.wrap(this._checkOtp);
-    this.checkLoginUserExist = this.wrap(this._checkLoginUserExist);
+    this.findUserWithEmail = this.wrap(this._findUserWithEmail);
     this.checkPassword = this.wrap(this._checkPassword);
   }
 
@@ -83,36 +84,51 @@ export class AuthMiddleware extends BaseMiddleware {
     next();
   }
 
-  private async _checkLoginUserExist(
+  private async _findUserWithEmail(
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> {
+    const route = req.path;
+    const isAdminRoute = route.startsWith('/auth/admin');
     const { email, rememberMe } = req.body;
     const user = await User.findOne({ email }).lean();
+
+    // Check if user exists first
     if (!user) {
       res.status(401).json({
         success: false,
-        message: 'Invalid Credential,Check Your Email And Password',
+        message: 'Invalid Credential, Check Your Email And Password',
       });
       return;
     }
-    if (!user?.isVerified) {
-      res.status(401).json({
-        success: false,
-        message:
-          'User with this email not verified,Please verify your account first',
-      });
+
+    // Check admin route permissions
+    if (isAdminRoute && user.role === Role.USER) {
+      res.status(403).json({ success: false, message: 'Permission Denied' });
       return;
     }
-    if (user?.accountStatus === AccountStatus.BLOCKED) {
-      res.status(401).json({
-        success: false,
-        message:
-          'Your account has been blocked,For more information please contact with admin',
-      });
-      return;
+
+    // Apply verification checks for non-admin routes
+    if (!isAdminRoute) {
+      if (!user.isVerified) {
+        res.status(401).json({
+          success: false,
+          message:
+            'User with this email not verified, Please verify your account first',
+        });
+        return;
+      }
+      if (user.accountStatus === AccountStatus.BLOCKED) {
+        res.status(401).json({
+          success: false,
+          message:
+            'Your account has been blocked, For more information please contact with admin',
+        });
+        return;
+      }
     }
+
     const userWithRememberMe = { ...user, rememberMe };
     req.user = userWithRememberMe;
     next();

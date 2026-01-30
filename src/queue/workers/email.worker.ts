@@ -3,7 +3,10 @@ import { Job } from 'bullmq';
 import { injectable } from 'tsyringe';
 
 import { BaseWorker } from '@/core/base_classes/worker.base';
-import { TSignupUserVerifyOtpEmailData } from '@/types/emailQueue.types';
+import {
+  TRecoverAccountSuccessfulEmail,
+  TSignupUserVerifyOtpEmailData,
+} from '@/types/emailQueue.types';
 import { SendEmail } from '@/utils/sendEmail.utils';
 
 @injectable()
@@ -21,7 +24,16 @@ export class EmailWorker extends BaseWorker {
           job.data as TSignupUserVerifyOtpEmailData
         );
         return;
-
+      case 'send-account-recover-otp-email':
+        await this.sendEmail.sendRecoverAccountOtpEmail(
+          job.data as TSignupUserVerifyOtpEmailData
+        );
+        return;
+      case 'send-account-recover-account-successful-email':
+        await this.sendEmail.sendRecoverAccountSuccessEmail(
+          job.data as TRecoverAccountSuccessfulEmail
+        );
+        return;
       default:
         throw new Error(`Unhandled email job: ${job.name}`);
     }

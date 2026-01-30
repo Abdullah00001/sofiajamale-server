@@ -5,7 +5,9 @@ import { validateReqBody } from '@/middlewares/validateReqBody.middleware';
 import { AuthController } from '@/modules/auth/auth.controllers';
 import { AuthMiddleware } from '@/modules/auth/auth.middlewares';
 import {
+  findRecoverUserSchema,
   loginSchema,
+  resetPasswordSchema,
   signupSchema,
   verifyOtpSchema,
 } from '@/modules/auth/auth.schemas';
@@ -15,6 +17,7 @@ const router = Router();
 const controller = container.resolve(AuthController);
 const middleware = container.resolve(AuthMiddleware);
 
+// User Signup Flow
 router.post(
   '/auth/signup',
   validateReqBody(signupSchema),
@@ -32,12 +35,45 @@ router.post(
 
 router.post('/auth/resend', middleware.checkOtpPageToken, controller.resendOtp);
 
+// User Login
 router.post(
   '/auth/login',
   validateReqBody(loginSchema),
-  middleware.checkLoginUserExist,
+  middleware.findUserWithEmail,
   middleware.checkPassword,
   controller.login
+);
+
+// Admin Login
+// router.post(
+//   '/auth/admin/login',
+//   validateReqBody(loginSchema),
+//   middleware.findUserWithEmail,
+//   middleware.checkPassword,
+//   controller.login
+// );
+
+// Recover Flow
+router.post(
+  '/auth/recover/find',
+  validateReqBody(findRecoverUserSchema),
+  middleware.findUserWithEmail,
+  controller.findRecoverUser
+);
+
+router.post(
+  '/auth/recover/verify',
+  validateReqBody(verifyOtpSchema),
+  middleware.checkOtpPageToken,
+  middleware.checkOtp,
+  controller.recoverUserOtpVerify
+);
+
+router.patch(
+  '/auth/recover/reset',
+  validateReqBody(resetPasswordSchema),
+  middleware.checkOtpPageToken,
+  controller.recoverResetPassword
 );
 
 export default router;
