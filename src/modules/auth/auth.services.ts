@@ -79,17 +79,16 @@ export class AuthService {
         { $set: { isVerified: true } },
         { new: true }
       );
+      if (!updatedUser) throw new Error('User not found');
       const accessToken = this.jwtUtils.generateAccessTokenForUser({
         accountStatus: updatedUser?.accountStatus,
-        isVerfied: updatedUser?.isVerified,
+        isVerified: updatedUser?.isVerified,
+        role: updatedUser?.role,
+        sub: String(updatedUser?._id),
       });
-
-      /**
-       * todo
-       * generate access token
-       * remove the otp from redis 
-       * return jwt
-       */
+      const redisClient = getRedisClient();
+      await redisClient.del(`user:${updatedUser._id}:otp`);
+      return { accessToken };
     } catch (error) {
       if (error instanceof Error) {
         throw error;
