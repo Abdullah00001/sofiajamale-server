@@ -6,7 +6,7 @@ import { otpExpireAt } from '@/const';
 import { CreateUserResponseDTO } from '@/modules/auth/auth.dto';
 import User from '@/modules/auth/auth.model';
 import { TSignupPayload } from '@/modules/auth/auth.schemas';
-import { TVerifyOtp } from '@/modules/auth/auth.types';
+import { IUser, TVerifyOtp } from '@/modules/auth/auth.types';
 import { EmailQueue } from '@/queue/queues/email.queue';
 import { TSignupUserVerifyOtpEmailData } from '@/types/emailQueue.types';
 import { JwtUtils } from '@/utils/jwt.utils';
@@ -128,6 +128,24 @@ export class AuthService {
         throw error;
       }
       throw new Error('Unknown error occurred in resend otp service');
+    }
+  }
+
+  async login({ user }: { user: IUser }): Promise<{ accessToken: string }> {
+    try {
+      const accessToken = this.jwtUtils.generateAccessTokenForUser({
+        accountStatus: user?.accountStatus,
+        isVerified: user?.isVerified,
+        role: user?.role,
+        sub: String(user?._id),
+        rememberMe: user?.rememberMe,
+      });
+      return { accessToken };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error occurred in login service');
     }
   }
 }

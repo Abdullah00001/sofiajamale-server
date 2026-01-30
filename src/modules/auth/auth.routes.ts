@@ -4,7 +4,11 @@ import { container } from 'tsyringe';
 import { validateReqBody } from '@/middlewares/validateReqBody.middleware';
 import { AuthController } from '@/modules/auth/auth.controllers';
 import { AuthMiddleware } from '@/modules/auth/auth.middlewares';
-import { signupSchema, verifyOtpSchema } from '@/modules/auth/auth.schemas';
+import {
+  loginSchema,
+  signupSchema,
+  verifyOtpSchema,
+} from '@/modules/auth/auth.schemas';
 
 const router = Router();
 
@@ -27,5 +31,13 @@ router.post(
 );
 
 router.post('/auth/resend', middleware.checkOtpPageToken, controller.resendOtp);
+
+router.post(
+  '/auth/login',
+  validateReqBody(loginSchema),
+  middleware.checkLoginUserExist,
+  middleware.checkPassword,
+  controller.login
+);
 
 export default router;

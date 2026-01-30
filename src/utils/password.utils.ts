@@ -28,7 +28,7 @@ export class PasswordUtils {
   async comparePassword(
     requestedPassword: string,
     hashPassword: string
-  ): Promise<boolean | null> {
+  ): Promise<boolean> {
     try {
       return await bcrypt.compare(requestedPassword, hashPassword);
     } catch (error) {
@@ -36,10 +36,11 @@ export class PasswordUtils {
         logger.warn(
           `Error Occurred In Compare Password Utils: ${error.message}`
         );
+        throw error;
       } else {
         logger.warn('Unexpected Error Occurred In Compare Password Utils');
+        throw new Error('Unexpected Error Occurred In Compare Password Utils');
       }
-      return null;
     }
   }
 }

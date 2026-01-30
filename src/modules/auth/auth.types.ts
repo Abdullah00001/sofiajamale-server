@@ -23,6 +23,7 @@ export interface IUser {
   avatar: string;
   createdAt?: Date;
   updatedAt?: Date;
+  rememberMe?: boolean;
 }
 
 export type TVerifyOtp = {
