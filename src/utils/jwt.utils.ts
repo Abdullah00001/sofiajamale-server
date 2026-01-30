@@ -3,6 +3,10 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 import { injectable } from 'tsyringe';
 
 import logger from '@/configs/logger.config';
+import {
+  refreshTokenExpiresInWithOutRememberMe,
+  refreshTokenExpiresInWithRememberMe,
+} from '@/const';
 import { env } from '@/env';
 import { ITokenPayload } from '@/types/jwt.types';
 
@@ -35,7 +39,10 @@ export class JwtUtils {
       throw new Error('Generate RefreshToken Payload Cant Be Null');
     }
 
-    const expiresAt = payload.rememberMe === true ? '30d' : '3d';
+    const expiresAt =
+      payload.rememberMe === true
+        ? refreshTokenExpiresInWithRememberMe
+        : refreshTokenExpiresInWithOutRememberMe;
 
     return jwt.sign(payload, env.JWT_REFRESH_TOKEN_SECRET_KEY, {
       expiresIn: expiresAt,

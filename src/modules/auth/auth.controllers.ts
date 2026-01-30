@@ -1,9 +1,15 @@
 import { Request, Response, RequestHandler } from 'express';
 import { injectable } from 'tsyringe';
 
+import {
+  adminAccessTokenExpiresIn,
+  refreshTokenExpiresInWithOutRememberMe,
+  refreshTokenExpiresInWithRememberMe,
+} from '@/const';
 import { BaseController } from '@/core/base_classes/base.controller';
 import { AuthService } from '@/modules/auth/auth.services';
 import { IUser } from '@/modules/auth/auth.types';
+import { CookieUtils } from '@/utils/cookie.utils';
 import { JwtUtils } from '@/utils/jwt.utils';
 
 @injectable()
@@ -15,10 +21,14 @@ export class AuthController extends BaseController {
   public findRecoverUser: RequestHandler;
   public recoverUserOtpVerify: RequestHandler;
   public recoverResetPassword: RequestHandler;
+  public adminLogin: RequestHandler;
+  public checkAccessToken: RequestHandler;
+  public logout: RequestHandler;
 
   constructor(
     private readonly authService: AuthService,
-    private readonly jwtUtils: JwtUtils
+    private readonly jwtUtils: JwtUtils,
+    private readonly cookieUtils: CookieUtils
   ) {
     super();
     this.signup = this.wrap(this._signup);
@@ -28,6 +38,9 @@ export class AuthController extends BaseController {
     this.findRecoverUser = this.wrap(this._findRecoverUser);
     this.recoverUserOtpVerify = this.wrap(this._recoverUserOtpVerify);
     this.recoverResetPassword = this.wrap(this._recoverResetPassword);
+    this.adminLogin = this.wrap(this._adminLogin);
+    this.checkAccessToken = this.wrap(this._checkAccessToken);
+    this.logout = this.wrap(this._logout);
   }
 
   private async _signup(req: Request, res: Response): Promise<void> {
@@ -110,6 +123,42 @@ export class AuthController extends BaseController {
       success: true,
       message: 'password reset successful',
     });
+    return;
+  }
+
+  private async _adminLogin(req: Request, res: Response): Promise<void> {
+    const { rememberMe } = req.body;
+    const { accessToken, refreshToken } = await this.authService.adminLogin({
+      user: req.user as IUser,
+      rememberMe,
+    });
+    const refreshTokenExpireIn = rememberMe
+      ? refreshTokenExpiresInWithRememberMe
+      : refreshTokenExpiresInWithOutRememberMe;
+    res.cookie(
+      'accesstoken',
+      accessToken,
+      this.cookieUtils.cookieOption(adminAccessTokenExpiresIn)
+    );
+    res.cookie(
+      'accesstoken',
+      refreshToken,
+      this.cookieUtils.cookieOption(refreshTokenExpireIn)
+    );
+    res.status(200).json({ success: true, message: 'Login successful' });
+    return;
+  }
+
+  private async _checkAccessToken(_req: Request, res: Response): Promise<void> {
+    res.status(200).json({ success: true, message: 'User Authenticated' });
+    return;
+  }
+
+  private async _logout(req: Request, res: Response): Promise<void> {
+    const user=req.user;
+    const accessToken = this.jwtUtils.extractToken(req);
+    await this.authService.logout({ accessToken: accessToken as string,user });
+    res.status(200).json({ success: true, message: 'User Authenticated' });
     return;
   }
 }

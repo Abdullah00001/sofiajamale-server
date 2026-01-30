@@ -44,14 +44,22 @@ router.post(
   controller.login
 );
 
-// Admin Login
-// router.post(
-//   '/auth/admin/login',
-//   validateReqBody(loginSchema),
-//   middleware.findUserWithEmail,
-//   middleware.checkPassword,
-//   controller.login
-// );
+router.post(
+  '/auth/check',
+  middleware.checkAccessToken,
+  controller.checkAccessToken
+);
+
+router.post('/auth/logout', middleware.checkAccessToken, controller.logout);
+
+//Admin Login
+router.post(
+  '/auth/admin/login',
+  validateReqBody(loginSchema),
+  middleware.findUserWithEmail,
+  middleware.checkPassword,
+  controller.adminLogin
+);
 
 // Recover Flow
 router.post(

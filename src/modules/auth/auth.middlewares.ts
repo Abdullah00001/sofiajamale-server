@@ -18,6 +18,7 @@ export class AuthMiddleware extends BaseMiddleware {
   public checkOtp: RequestHandler;
   public findUserWithEmail: RequestHandler;
   public checkPassword: RequestHandler;
+  public checkAccessToken: RequestHandler;
   constructor(
     private readonly jwtUtils: JwtUtils,
     private readonly otpUtils: OtpUtils,
@@ -29,6 +30,7 @@ export class AuthMiddleware extends BaseMiddleware {
     this.checkOtp = this.wrap(this._checkOtp);
     this.findUserWithEmail = this.wrap(this._findUserWithEmail);
     this.checkPassword = this.wrap(this._checkPassword);
+    this.checkAccessToken = this.wrap(this._checkAccessToken);
   }
 
   private async _checkSignupUserExist(
@@ -152,6 +154,25 @@ export class AuthMiddleware extends BaseMiddleware {
       });
       return;
     }
+    next();
+  }
+
+  private async _checkAccessToken(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    const token = this.jwtUtils.extractToken(req);
+    if (!token) {
+      res.status(401).json({ success: false, message: 'jwt token not found' });
+      return;
+    }
+    const decoded = this.jwtUtils.verifyAccessToken(token);
+    if (!decoded) {
+      res.status(401).json({ success: false, message: 'invalid jwt token' });
+      return;
+    }
+    req.user = decoded;
     next();
   }
 }

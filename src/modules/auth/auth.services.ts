@@ -244,4 +244,56 @@ export class AuthService {
       throw new Error('Unknown error occurred in verify otp service');
     }
   }
+
+  async adminLogin({
+    user,
+    rememberMe,
+  }: {
+    user: IUser;
+    rememberMe: boolean;
+  }): Promise<{ accessToken: string; refreshToken: string }> {
+    try {
+      const accessToken = this.jwtUtils.generateAccessTokenForAdmin({
+        sub: String(user._id),
+        role: user.role,
+        isVerified: user.isVerified,
+        accountStatus: user.accountStatus,
+        rememberMe,
+      });
+      const refreshToken = this.jwtUtils.generateRefreshToken({
+        sub: String(user._id),
+        role: user.role,
+        isVerified: user.isVerified,
+        accountStatus: user.accountStatus,
+        rememberMe,
+      });
+      return { accessToken, refreshToken };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error occurred in admin login service');
+    }
+  }
+
+  async logout({
+    accessToken,
+    user,
+  }: {
+    accessToken: string;
+    user: JwtPayload;
+  }): Promise<void> {
+    const redisClient = getRedisClient();
+    const expirationTime =
+      new Date(user.exp as string | number).getTime() / 1000; // convert to seconds
+    const currentTime = Math.floor(Date.now() / 1000); // current time in seconds
+    const ttl = Math.floor(expirationTime - currentTime); // remaining time in seconds
+    if (ttl > 0)
+      await redisClient.set(
+        `blacklist:jwt:${accessToken}`,
+        accessToken,
+        'EX',
+        ttl
+      );
+  }
 }
