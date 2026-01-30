@@ -11,7 +11,6 @@ const router = Router();
 const controller = container.resolve(AuthController);
 const middleware = container.resolve(AuthMiddleware);
 
-// Signup Flow
 router.post(
   '/auth/signup',
   validateReqBody(signupSchema),
@@ -27,5 +26,6 @@ router.post(
   controller.verifyOtp
 );
 
+router.post('/auth/resend', middleware.checkOtpPageToken, controller.resendOtp);
 
 export default router;

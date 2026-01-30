@@ -96,4 +96,38 @@ export class AuthService {
       throw new Error('Unknown error occurred in verify otp service');
     }
   }
+
+  async resendOtp({ user }: TVerifyOtp): Promise<void> {
+    try {
+      const otp = generate(6, {
+        digits: true,
+        lowerCaseAlphabets: false,
+        specialChars: false,
+        upperCaseAlphabets: false,
+      });
+      // hash plain otp and password
+      const hashOtp = this.otpUtils.hashOtp({ otp });
+      const foundedUser = await User.findById(user.sub);
+      if (!foundedUser) throw new Error('User not found');
+      const emailData: TSignupUserVerifyOtpEmailData = {
+        email: foundedUser?.email,
+        expirationTime: otpExpireAt,
+        name: foundedUser?.name,
+        otp,
+      };
+      const redisClient = getRedisClient();
+      const ttl = this.systemUtils.calculateMilliseconds(otpExpireAt, 'minute');
+      await redisClient.del(`user:${foundedUser?._id}:otp`);
+      await Promise.all([
+        redisClient.set(`user:${foundedUser?._id}:otp`, hashOtp, 'PX', ttl),
+        this.emailQueue.sendSignupVerificationOtpEmail(emailData),
+      ]);
+      return;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error occurred in resend otp service');
+    }
+  }
 }
