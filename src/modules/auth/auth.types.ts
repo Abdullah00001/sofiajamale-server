@@ -8,6 +8,13 @@ export enum AccountStatus {
   BLOCKED = 'blocked',
 }
 
+export enum AuthErrorType {
+  TOKEN_EXPIRED = 'TOKEN_EXPIRED',
+  TOKEN_INVALID = 'TOKEN_INVALID',
+  TOKEN_BLACKLISTED = 'TOKEN_BLACKLISTED',
+  USER_BLOCKED = 'USER_BLOCKED',
+}
+
 export interface IUser {
   _id: mongoose.Schema.Types.ObjectId;
   name: string;

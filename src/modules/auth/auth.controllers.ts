@@ -1,4 +1,5 @@
 import { Request, Response, RequestHandler } from 'express';
+import { JwtPayload } from 'jsonwebtoken';
 import { injectable } from 'tsyringe';
 
 import {
@@ -19,11 +20,15 @@ export class AuthController extends BaseController {
   public resendOtp: RequestHandler;
   public login: RequestHandler;
   public findRecoverUser: RequestHandler;
+  public recoverUserOtpResend: RequestHandler;
   public recoverUserOtpVerify: RequestHandler;
   public recoverResetPassword: RequestHandler;
   public adminLogin: RequestHandler;
   public checkAccessToken: RequestHandler;
   public logout: RequestHandler;
+  public checkAdminAccessToken: RequestHandler;
+  public adminRefreshToken: RequestHandler;
+  public adminLogout: RequestHandler;
 
   constructor(
     private readonly authService: AuthService,
@@ -41,6 +46,10 @@ export class AuthController extends BaseController {
     this.adminLogin = this.wrap(this._adminLogin);
     this.checkAccessToken = this.wrap(this._checkAccessToken);
     this.logout = this.wrap(this._logout);
+    this.checkAdminAccessToken = this.wrap(this._checkAdminAccessToken);
+    this.adminRefreshToken = this.wrap(this._adminRefreshToken);
+    this.adminLogout = this.wrap(this._adminLogout);
+    this.recoverUserOtpResend = this.wrap(this._recoverUserOtpResend);
   }
 
   private async _signup(req: Request, res: Response): Promise<void> {
@@ -126,6 +135,24 @@ export class AuthController extends BaseController {
     return;
   }
 
+  private async _checkAccessToken(_req: Request, res: Response): Promise<void> {
+    res.status(200).json({ success: true, message: 'User Authenticated' });
+    return;
+  }
+
+  private async _logout(req: Request, res: Response): Promise<void> {
+    const user = req.user;
+    const accessToken = this.jwtUtils.extractToken(req);
+    await this.authService.logout({ accessToken: accessToken as string, user });
+    res.status(200).json({ success: true, message: 'User logout successful' });
+    return;
+  }
+
+  /**
+   * ==========================================
+   * ------------ADMIN AUTH ROUTES-------------
+   * ===========================================
+   */
   private async _adminLogin(req: Request, res: Response): Promise<void> {
     const { rememberMe } = req.body;
     const { accessToken, refreshToken } = await this.authService.adminLogin({
@@ -141,7 +168,7 @@ export class AuthController extends BaseController {
       this.cookieUtils.cookieOption(adminAccessTokenExpiresIn)
     );
     res.cookie(
-      'accesstoken',
+      'refreshtoken',
       refreshToken,
       this.cookieUtils.cookieOption(refreshTokenExpireIn)
     );
@@ -149,16 +176,42 @@ export class AuthController extends BaseController {
     return;
   }
 
-  private async _checkAccessToken(_req: Request, res: Response): Promise<void> {
+  private async _checkAdminAccessToken(
+    _req: Request,
+    res: Response
+  ): Promise<void> {
     res.status(200).json({ success: true, message: 'User Authenticated' });
     return;
   }
 
-  private async _logout(req: Request, res: Response): Promise<void> {
-    const user=req.user;
-    const accessToken = this.jwtUtils.extractToken(req);
-    await this.authService.logout({ accessToken: accessToken as string,user });
-    res.status(200).json({ success: true, message: 'User Authenticated' });
+  private async _adminRefreshToken(req: Request, res: Response): Promise<void> {
+    const user = req.user as JwtPayload;
+    const { jwt } = await this.authService.adminRefreshToken({ user });
+    res
+      .status(200)
+      .json({ success: true, message: 'Token refresh successful', data: jwt });
+    return;
+  }
+
+  private async _adminLogout(req: Request, res: Response): Promise<void> {
+    const { accesstoken, refreshtoken } = req.cookies;
+    await this.authService.adminLogout({
+      accessToken: accesstoken as string,
+      refreshToken: refreshtoken,
+    });
+    res.clearCookie('accesstoken');
+    res.clearCookie('refreshtoken');
+    res.status(200).json({ success: true, message: 'Admin logout successful' });
+    return;
+  }
+
+  private async _recoverUserOtpResend(
+    req: Request,
+    res: Response
+  ): Promise<void> {
+    const user = req.user as JwtPayload;
+    await this.authService.recoverUserOtpResend({ user });
+    res.status(200).json({ success: true, message: 'Otp resend successful' });
     return;
   }
 }

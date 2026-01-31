@@ -5,7 +5,7 @@ import { injectable } from 'tsyringe';
 import { getRedisClient } from '@/configs/redis.config';
 import { BaseMiddleware } from '@/core/base_classes/base.middleware';
 import User from '@/modules/auth/auth.model';
-import { AccountStatus, IUser } from '@/modules/auth/auth.types';
+import { AccountStatus, IUser, AuthErrorType } from '@/modules/auth/auth.types';
 import { Role } from '@/types/jwt.types';
 import { JwtUtils } from '@/utils/jwt.utils';
 import { OtpUtils } from '@/utils/otp.utils';
@@ -19,6 +19,9 @@ export class AuthMiddleware extends BaseMiddleware {
   public findUserWithEmail: RequestHandler;
   public checkPassword: RequestHandler;
   public checkAccessToken: RequestHandler;
+  public checkAdminAccessToken: RequestHandler;
+  public checkAdminRefreshToken: RequestHandler;
+  public checkUserAccountStatus: RequestHandler;
   constructor(
     private readonly jwtUtils: JwtUtils,
     private readonly otpUtils: OtpUtils,
@@ -31,6 +34,9 @@ export class AuthMiddleware extends BaseMiddleware {
     this.findUserWithEmail = this.wrap(this._findUserWithEmail);
     this.checkPassword = this.wrap(this._checkPassword);
     this.checkAccessToken = this.wrap(this._checkAccessToken);
+    this.checkAdminAccessToken = this.wrap(this._checkAdminAccessToken);
+    this.checkAdminRefreshToken = this.wrap(this._checkAdminRefreshToken);
+    this.checkUserAccountStatus = this.wrap(this._checkUserAccountStatus);
   }
 
   private async _checkSignupUserExist(
@@ -56,12 +62,30 @@ export class AuthMiddleware extends BaseMiddleware {
   ): Promise<void> {
     const token = this.jwtUtils.extractToken(req);
     if (!token) {
-      res.status(401).json({ success: false, message: 'jwt token not found' });
+      res.status(401).json({
+        success: false,
+        message: 'Authentication token not found',
+        errorType: AuthErrorType.TOKEN_INVALID,
+      });
+      return;
+    }
+    const redisClient = getRedisClient();
+    const isBlackListed = await redisClient.get(`blacklist:jwt:${token}`);
+    if (isBlackListed) {
+      res.status(401).json({
+        success: false,
+        message: 'Token has been revoked',
+        errorType: AuthErrorType.TOKEN_BLACKLISTED,
+      });
       return;
     }
     const decoded = this.jwtUtils.verifyOtpPageToken(token);
     if (!decoded) {
-      res.status(401).json({ success: false, message: 'invalid jwt token' });
+      res.status(401).json({
+        success: false,
+        message: 'Invalid or expired token',
+        errorType: AuthErrorType.TOKEN_INVALID,
+      });
       return;
     }
     req.user = decoded;
@@ -75,12 +99,18 @@ export class AuthMiddleware extends BaseMiddleware {
     const redisClient = getRedisClient();
     const hashedOtp = await redisClient.get(`user:${user.sub}:otp`);
     if (!hashedOtp) {
-      res.status(401).json({ success: false, message: 'otp has been expired' });
+      res.status(401).json({
+        success: false,
+        message: 'OTP has expired, please request a new one',
+      });
       return;
     }
     const isMatched = this.otpUtils.compareOtp({ hashedOtp, otp });
     if (!isMatched) {
-      res.status(401).json({ success: false, message: 'invalid otp' });
+      res.status(401).json({
+        success: false,
+        message: 'Invalid OTP, please check and try again',
+      });
       return;
     }
     next();
@@ -107,7 +137,10 @@ export class AuthMiddleware extends BaseMiddleware {
 
     // Check admin route permissions
     if (isAdminRoute && user.role === Role.USER) {
-      res.status(403).json({ success: false, message: 'Permission Denied' });
+      res.status(403).json({
+        success: false,
+        message: 'Access denied, admin privileges required',
+      });
       return;
     }
 
@@ -117,7 +150,7 @@ export class AuthMiddleware extends BaseMiddleware {
         res.status(401).json({
           success: false,
           message:
-            'User with this email not verified, Please verify your account first',
+            'Account not verified, please verify your email address first',
         });
         return;
       }
@@ -125,7 +158,8 @@ export class AuthMiddleware extends BaseMiddleware {
         res.status(401).json({
           success: false,
           message:
-            'Your account has been blocked, For more information please contact with admin',
+            'Your account has been blocked, please contact support for assistance',
+          errorType: AuthErrorType.USER_BLOCKED,
         });
         return;
       }
@@ -164,15 +198,129 @@ export class AuthMiddleware extends BaseMiddleware {
   ): Promise<void> {
     const token = this.jwtUtils.extractToken(req);
     if (!token) {
-      res.status(401).json({ success: false, message: 'jwt token not found' });
+      res.status(401).json({
+        success: false,
+        message: 'Authentication token not found',
+        errorType: AuthErrorType.TOKEN_INVALID,
+      });
+      return;
+    }
+    const redisClient = getRedisClient();
+    const isBlackListed = await redisClient.get(`blacklist:jwt:${token}`);
+    if (isBlackListed) {
+      res.status(401).json({
+        success: false,
+        message: 'Token has been revoked',
+        errorType: AuthErrorType.TOKEN_BLACKLISTED,
+      });
       return;
     }
     const decoded = this.jwtUtils.verifyAccessToken(token);
     if (!decoded) {
-      res.status(401).json({ success: false, message: 'invalid jwt token' });
+      res.status(401).json({
+        success: false,
+        message: 'Invalid or expired token',
+        errorType: AuthErrorType.TOKEN_INVALID,
+      });
       return;
     }
     req.user = decoded;
+    next();
+  }
+
+  private async _checkAdminAccessToken(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    const token = req?.cookies?.accesstoken;
+    if (!token) {
+      res.status(401).json({
+        success: false,
+        message: 'Unauthorized request, authentication required',
+        errorType: AuthErrorType.TOKEN_INVALID,
+      });
+      return;
+    }
+    const redisClient = getRedisClient();
+    const isBlackListed = await redisClient.get(`blacklist:jwt:${token}`);
+    if (isBlackListed) {
+      res.status(401).json({
+        success: false,
+        message: 'Token has been revoked',
+        errorType: AuthErrorType.TOKEN_BLACKLISTED,
+      });
+      return;
+    }
+    const decoded = this.jwtUtils.verifyAccessToken(token);
+    if (!decoded) {
+      res.status(401).json({
+        success: false,
+        message: 'Invalid or expired token',
+        errorType: AuthErrorType.TOKEN_INVALID,
+      });
+      return;
+    }
+    req.user = decoded;
+    next();
+  }
+
+  private async _checkAdminRefreshToken(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    const token = req?.cookies?.refreshtoken;
+    if (!token) {
+      res.status(401).json({
+        success: false,
+        message: 'Unauthorized request, refresh token required',
+        errorType: AuthErrorType.TOKEN_INVALID,
+      });
+      return;
+    }
+    const redisClient = getRedisClient();
+    const isBlackListed = await redisClient.get(`blacklist:jwt:${token}`);
+    if (isBlackListed) {
+      res.status(401).json({
+        success: false,
+        message: 'Token has been revoked',
+        errorType: AuthErrorType.TOKEN_BLACKLISTED,
+      });
+      return;
+    }
+    const decoded = this.jwtUtils.verifyAccessToken(token);
+    if (!decoded) {
+      res.status(401).json({
+        success: false,
+        message: 'Invalid or expired refresh token',
+        errorType: AuthErrorType.TOKEN_INVALID,
+      });
+      return;
+    }
+    req.user = decoded;
+    next();
+  }
+
+  private async _checkUserAccountStatus(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    const route=req.path
+    const { sub } = req.user as JwtPayload;
+    const user = await User.findById(sub);
+    if (user?.accountStatus === AccountStatus.BLOCKED) {
+      res.status(401).json({
+        success: false,
+        message: 'Access denied, your account has been blocked',
+        errorType: AuthErrorType.USER_BLOCKED,
+      });
+      return;
+    }
+    const isLogoutRoute=route.startsWith('/auth/logout')
+    if(!isLogoutRoute)
+      req.user = user as IUser;
     next();
   }
 }

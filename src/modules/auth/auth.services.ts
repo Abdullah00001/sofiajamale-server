@@ -88,8 +88,7 @@ export class AuthService {
         sub: String(updatedUser?._id),
       });
       const redisClient = getRedisClient();
-      const expirationTime =
-        new Date(user.exp as string | number).getTime() / 1000; // convert to seconds
+      const expirationTime = user.exp as number; // convert to seconds
       const currentTime = Math.floor(Date.now() / 1000); // current time in seconds
       const ttl = Math.floor(expirationTime - currentTime); // remaining time in seconds
       if (ttl > 0)
@@ -227,8 +226,7 @@ export class AuthService {
         { new: true }
       );
       const redisClient = getRedisClient();
-      const expirationTime =
-        new Date(user.exp as string | number).getTime() / 1000; // convert to seconds
+      const expirationTime = user.exp as number;
       const currentTime = Math.floor(Date.now() / 1000); // current time in seconds
       const ttl = Math.floor(expirationTime - currentTime); // remaining time in seconds
       if (ttl > 0)
@@ -283,17 +281,120 @@ export class AuthService {
     accessToken: string;
     user: JwtPayload;
   }): Promise<void> {
-    const redisClient = getRedisClient();
-    const expirationTime =
-      new Date(user.exp as string | number).getTime() / 1000; // convert to seconds
-    const currentTime = Math.floor(Date.now() / 1000); // current time in seconds
-    const ttl = Math.floor(expirationTime - currentTime); // remaining time in seconds
-    if (ttl > 0)
-      await redisClient.set(
-        `blacklist:jwt:${accessToken}`,
-        accessToken,
-        'EX',
-        ttl
+    try {
+      const redisClient = getRedisClient();
+      const expirationTime = user.exp as number;
+      const currentTime = Math.floor(Date.now() / 1000); // current time in seconds
+      const ttl = Math.floor(expirationTime - currentTime); // remaining time in seconds
+      if (ttl > 0)
+        await redisClient.set(
+          `blacklist:jwt:${accessToken}`,
+          accessToken,
+          'EX',
+          ttl
+        );
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error occurred in user logout service');
+    }
+  }
+
+  async adminRefreshToken({
+    user,
+  }: {
+    user: JwtPayload;
+  }): Promise<{ jwt: string }> {
+    try {
+      const accessToken = this.jwtUtils.generateAccessTokenForAdmin({
+        sub: String(user.sub),
+        role: user.role,
+        isVerified: user.isVerified,
+        accountStatus: user.accountStatus,
+      });
+      return { jwt: accessToken };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error occurred in admin refresh token service');
+    }
+  }
+
+  async adminLogout({
+    refreshToken,
+    accessToken,
+  }: {
+    accessToken: string;
+    refreshToken: string;
+  }): Promise<void> {
+    try {
+      const accessTokenDecoded = this.jwtUtils.verifyAccessToken(accessToken);
+      const refreshTokenDecoded = this.jwtUtils.verifyAccessToken(refreshToken);
+      const redisClient = getRedisClient();
+      const accessTokenExpirationTime = accessTokenDecoded?.exp as number;
+      const refreshTokenExpirationTime = refreshTokenDecoded?.exp as number;
+      const currentTime = Math.floor(Date.now() / 1000); // current time in seconds
+      const accessTokenttl = Math.floor(
+        accessTokenExpirationTime - currentTime
       );
+      const refreshTokenttl = Math.floor(
+        refreshTokenExpirationTime - currentTime
+      );
+      if (accessTokenttl > 0)
+        await redisClient.set(
+          `blacklist:jwt:${accessToken}`,
+          accessToken,
+          'EX',
+          accessTokenttl
+        );
+      if (refreshTokenttl > 0)
+        await redisClient.set(
+          `blacklist:jwt:${accessToken}`,
+          accessToken,
+          'EX',
+          refreshTokenttl
+        );
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error occurred in user logout service');
+    }
+  }
+
+  async recoverUserOtpResend({ user }: TVerifyOtp): Promise<void> {
+    try {
+      const otp = generate(6, {
+        digits: true,
+        lowerCaseAlphabets: false,
+        specialChars: false,
+        upperCaseAlphabets: false,
+      });
+      // hash plain otp and password
+      const hashOtp = this.otpUtils.hashOtp({ otp });
+      const foundedUser = await User.findById(user.sub);
+      if (!foundedUser) throw new Error('User not found');
+      const emailData: TSignupUserVerifyOtpEmailData = {
+        email: foundedUser?.email,
+        expirationTime: otpExpireAt,
+        name: foundedUser?.name,
+        otp,
+      };
+      const redisClient = getRedisClient();
+      const ttl = this.systemUtils.calculateMilliseconds(otpExpireAt, 'minute');
+      await redisClient.del(`user:${foundedUser?._id}:otp`);
+      await Promise.all([
+        redisClient.set(`user:${foundedUser?._id}:otp`, hashOtp, 'PX', ttl),
+        this.emailQueue.sendAccountRecoverVerificationOtpEmail(emailData),
+      ]);
+      return;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error occurred in resend recover user otp service');
+    }
   }
 }

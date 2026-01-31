@@ -44,15 +44,21 @@ router.post(
   controller.login
 );
 
-router.post(
+router.get(
   '/auth/check',
   middleware.checkAccessToken,
+  middleware.checkUserAccountStatus,
   controller.checkAccessToken
 );
 
-router.post('/auth/logout', middleware.checkAccessToken, controller.logout);
+router.post(
+  '/auth/logout',
+  middleware.checkAccessToken,
+  middleware.checkUserAccountStatus,
+  controller.logout
+);
 
-//Admin Login
+// Admin Login
 router.post(
   '/auth/admin/login',
   validateReqBody(loginSchema),
@@ -61,12 +67,36 @@ router.post(
   controller.adminLogin
 );
 
+router.get(
+  '/auth/admin/check',
+  middleware.checkAdminAccessToken,
+  controller.checkAdminAccessToken
+);
+
+router.post(
+  '/auth/admin/refresh',
+  middleware.checkAdminRefreshToken,
+  controller.adminRefreshToken
+);
+
+router.post(
+  '/auth/admin/logout',
+  middleware.checkAdminAccessToken,
+  controller.adminLogout
+);
+
 // Recover Flow
 router.post(
   '/auth/recover/find',
   validateReqBody(findRecoverUserSchema),
   middleware.findUserWithEmail,
   controller.findRecoverUser
+);
+
+router.post(
+  '/auth/recover/resend',
+  middleware.checkOtpPageToken,
+  controller.recoverUserOtpResend
 );
 
 router.post(
