@@ -187,9 +187,14 @@ export class AuthController extends BaseController {
   private async _adminRefreshToken(req: Request, res: Response): Promise<void> {
     const user = req.user as JwtPayload;
     const { jwt } = await this.authService.adminRefreshToken({ user });
+    res.cookie(
+      'accesstoken',
+      jwt,
+      this.cookieUtils.cookieOption(adminAccessTokenExpiresIn)
+    );
     res
       .status(200)
-      .json({ success: true, message: 'Token refresh successful', data: jwt });
+      .json({ success: true, message: 'Token refresh successful' });
     return;
   }
 

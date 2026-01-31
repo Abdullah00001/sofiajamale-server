@@ -289,7 +289,7 @@ export class AuthMiddleware extends BaseMiddleware {
       });
       return;
     }
-    const decoded = this.jwtUtils.verifyAccessToken(token);
+    const decoded = this.jwtUtils.verifyRefreshToken(token);
     if (!decoded) {
       res.status(401).json({
         success: false,
