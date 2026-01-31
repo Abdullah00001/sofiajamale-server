@@ -34,6 +34,11 @@ export class EmailWorker extends BaseWorker {
           job.data as TRecoverAccountSuccessfulEmail
         );
         return;
+      case 'send-signup-successful-email':
+        await this.sendEmail.sendSignupSuccessEmail(
+          job.data as { name: string; email: string }
+        );
+        return;
       default:
         throw new Error(`Unhandled email job: ${job.name}`);
     }

@@ -94,6 +94,10 @@ export class AuthService {
       if (ttl > 0)
         await redisClient.set(`blacklist:jwt:${jwt}`, jwt as string, 'EX', ttl);
       await redisClient.del(`user:${updatedUser._id}:otp`);
+      await this.emailQueue.sendSignupSuccessfulEmail({
+        name: updatedUser?.name,
+        email: updatedUser?.email,
+      });
       return { accessToken };
     } catch (error) {
       if (error instanceof Error) {
@@ -394,7 +398,9 @@ export class AuthService {
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Unknown error occurred in resend recover user otp service');
+      throw new Error(
+        'Unknown error occurred in resend recover user otp service'
+      );
     }
   }
 }
