@@ -16,6 +16,7 @@ const UserSchema = new Schema<IUser>(
     isTermsAndPrivacyAccepted: { type: Boolean, required: true },
     password: { type: String, required: true, minLength: 8 },
     role: { type: String, default: Role.USER },
+    phone:{type:String,default:null}
   },
   { timestamps: true }
 );

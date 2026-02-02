@@ -1,6 +1,7 @@
 // utils/system.utils.ts
 
 import crypto from 'crypto';
+import { unlink } from 'fs/promises';
 
 import dayjs from 'dayjs';
 import timezone from 'dayjs/plugin/timezone';
@@ -102,5 +103,20 @@ export class SystemUtils {
   compareDate(oldDate: Date, duration: string): boolean {
     const ms = this.expiresInTimeUnitToMs(duration);
     return Date.now() - new Date(oldDate).getTime() >= ms;
+  }
+
+  async unlinkFile({ filePath }: { filePath: string }): Promise<void> {
+    try {
+      await unlink(filePath);
+    } catch (error) {
+      if (error instanceof Error) throw error;
+      throw new Error('Unknown Error Occurred In File Unlink Utility');
+    }
+  }
+
+  extractS3KeyFromUrl(url: string): string {
+    // Extract key from URL: https://bucket.s3.region.amazonaws.com/avatars/userId/timestamp.png
+    const urlParts = url.split('.amazonaws.com/');
+    return urlParts[1];
   }
 }

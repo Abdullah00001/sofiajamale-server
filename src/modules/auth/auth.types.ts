@@ -31,6 +31,7 @@ export interface IUser {
   createdAt?: Date;
   updatedAt?: Date;
   rememberMe?: boolean;
+  phone:string
 }
 
 export type TVerifyOtp = {
