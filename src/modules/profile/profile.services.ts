@@ -21,6 +21,7 @@ export class ProfileService {
     private readonly systemUtils: SystemUtils,
     private readonly passwordUtils: PasswordUtils
   ) {}
+  
   async uploadAvatar({
     fileName,
     user,
