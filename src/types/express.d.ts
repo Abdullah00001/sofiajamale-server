@@ -1,6 +1,7 @@
 import { JwtPayload } from 'jsonwebtoken';
 
 import { IUser } from '@/modules/auth/auth.types';
+import { IBlog } from '@/modules/blog/blog.types';
 import { IBrand } from '@/modules/brand/brand.types';
 
 declare global {
@@ -8,6 +9,7 @@ declare global {
     interface Request {
       user: JwtPayload | IUser;
       brand: IBrand;
+      blog: IBlog;
     }
   }
 }
