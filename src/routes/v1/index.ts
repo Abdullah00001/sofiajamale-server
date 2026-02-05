@@ -5,6 +5,7 @@ import BlogRoutes from '@/modules/blog/blog.routes';
 import BrandRoutes from '@/modules/brand/brand.routes';
 import LegalRoutes from '@/modules/legal/legal.routes';
 import ProfileRoutes from '@/modules/profile/profile.routes';
+import UserRoutes from '@/modules/user/user.routes';
 
 const routes: Router[] = [
   AuthRoutes,
@@ -12,6 +13,7 @@ const routes: Router[] = [
   BrandRoutes,
   BlogRoutes,
   LegalRoutes,
+  UserRoutes,
 ];
 
 const v1Routes = Router();

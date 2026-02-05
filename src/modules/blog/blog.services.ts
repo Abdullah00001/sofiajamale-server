@@ -168,7 +168,7 @@ export class BlogService {
       const showing = `Showing ${from} to ${to} of ${total} results`;
 
       // Determine base path based on user role
-      const basePath = user.role === 'admin' ? '/admin/brands' : '/brands';
+      const basePath = user.role === 'admin' ? '/admin/blogs' : '/blogs';
 
       const actions: TBlogActions = {
         create: isAdmin

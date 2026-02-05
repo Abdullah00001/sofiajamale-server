@@ -10,6 +10,7 @@ declare global {
       user: JwtPayload | IUser;
       brand: IBrand;
       blog: IBlog;
+      getUser:IUser;
     }
   }
 }
