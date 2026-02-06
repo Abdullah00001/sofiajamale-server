@@ -2,9 +2,14 @@ import { Router } from 'express';
 import { container } from 'tsyringe';
 
 import upload from '@/middlewares/multer.middleware';
+import { validateReqBody } from '@/middlewares/validateReqBody.middleware';
 import { AuthMiddleware } from '@/modules/auth/auth.middlewares';
 import { BlogController } from '@/modules/blog/blog.controllers';
 import { BlogMiddleware } from '@/modules/blog/blog.middlewares';
+import {
+  CreateBlogSchema,
+  UpdateBlogSchema,
+} from '@/modules/blog/blog.schemas';
 
 const router = Router();
 
@@ -16,6 +21,7 @@ const authMiddleware = container.resolve(AuthMiddleware);
 router
   .route('/admin/blogs')
   .post(
+    validateReqBody(CreateBlogSchema),
     authMiddleware.checkAdminAccessToken,
     upload.single('blogImage'),
     controller.createBlog
@@ -30,6 +36,7 @@ router
     controller.retrieveSingleBlog
   )
   .put(
+    validateReqBody(UpdateBlogSchema),
     authMiddleware.checkAdminAccessToken,
     middleware.findBlogById,
     upload.single('blogImage'),
