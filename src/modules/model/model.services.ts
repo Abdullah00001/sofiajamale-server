@@ -244,4 +244,31 @@ export class ModelService {
   }
 
   // TODO: implement here search service
+
+  async searchModel({
+    modelName,
+  }: {
+    modelName: string;
+  }): Promise<GetModelDTO[]> {
+    try {
+      const escapedQuery = modelName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+      // Search with multiple strategies
+      const data = await ModelModel.find({
+        $or: [
+          // Exact match (highest priority)
+          { modelName: { $regex: `^${escapedQuery}$`, $options: 'i' } },
+          // Starts with
+          { modelName: { $regex: `^${escapedQuery}`, $options: 'i' } },
+          // Contains
+          { modelName: { $regex: escapedQuery, $options: 'i' } },
+        ],
+      }).limit(50);
+      if (!data) throw new Error('Something went wrong on model search');
+      return data.map((item: IModel) => GetModelDTO.fromEntity(item));
+    } catch (error) {
+      if (error instanceof Error) throw error;
+      throw new Error('Unknown error occurred in search model service');
+    }
+  }
 }

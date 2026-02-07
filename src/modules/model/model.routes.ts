@@ -26,7 +26,9 @@ router
     controller.createModel
   )
   .get(authMiddleware.checkAdminAccessToken, controller.getModels);
-
+router
+  .route('/admin/model/search')
+  .get(authMiddleware.checkAdminAccessToken, controller.searchModel);
 router
   .route('/admin/model/:id')
   .put(
@@ -52,8 +54,6 @@ router
     middleware.findModelById,
     controller.getSingleModel
   );
-
-router.route('/admin/model/search').get(authMiddleware.checkAdminAccessToken);
 
 // user routes
 

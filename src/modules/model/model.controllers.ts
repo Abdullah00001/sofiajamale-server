@@ -128,14 +128,25 @@ export class ModelController extends BaseController {
   }
 
   private async _searchModel(req: Request, res: Response): Promise<void> {
-    const user = req.user;
-    const params = req.query as { page: string | null; limit: string | null };
+    const { query } = req.query;
+    console.log(query);
+    if (!query || typeof query !== 'string') {
+      res.status(400).json({
+        success: false,
+        status: 400,
+        message: 'Query parameter is required',
+      });
+      return;
+    }
     // TODO - Call here search service
+    const data = await this.modelService.searchModel({
+      modelName: query as string,
+    });
     res.status(200).json({
       success: true,
       status: 200,
-      message: 'Models retrieve successful',
-      ...data,
+      message: 'Models search successful',
+      data,
     });
     return;
   }

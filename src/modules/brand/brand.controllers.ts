@@ -86,7 +86,7 @@ export class BrandController extends BaseController {
     res.status(200).json({
       success: true,
       status: 200,
-      message: 'Search successful',
+      message: 'Brand Search successful',
       data,
     });
     return;
