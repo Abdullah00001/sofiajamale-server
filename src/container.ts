@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 
 // AUTO-IMPORTS (DO NOT REMOVE)
+import { registerAdminBagModule } from '@/modules/adminBag/adminBag.container'
 import { registerAuthModule } from '@/modules/auth/auth.container';
 import { registerBlogModule } from '@/modules/blog/blog.container';
 import { registerBrandModule } from '@/modules/brand/brand.container';
@@ -13,6 +14,7 @@ import { registerUtilsModule } from '@/utils/container';
 export const registerContainers = (): void => {
   // AUTO-REGISTER (DO NOT REMOVE)
   registerUtilsModule();
+  registerAdminBagModule()
   registerModelModule();
   registerUserModule();
   registerLegalModule();

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { container } from 'tsyringe';
 
-import upload from '@/middlewares/multer.middleware';
+import {uploadSingle,handleMulterError} from '@/middlewares/multer.middleware';
 import { AuthMiddleware } from '@/modules/auth/auth.middlewares';
 import { BrandController } from '@/modules/brand/brand.controllers';
 import { BrandMiddleware } from '@/modules/brand/brand.middlewares';
@@ -31,7 +31,8 @@ router
   .route('/admin/brands')
   .post(
     authMiddleware.checkAdminAccessToken,
-    upload.single('brandLogo'),
+    uploadSingle('brandLogo'),
+    handleMulterError,
     controller.createBrand
   )
   .get(authMiddleware.checkAdminAccessToken, controller.getBrands);
@@ -45,7 +46,8 @@ router
   .put(
     authMiddleware.checkAdminAccessToken,
     brandMiddleware.findBrandById,
-    upload.single('brandLogo'),
+    uploadSingle('brandLogo'),
+    handleMulterError,
     controller.editBrandInfo
   )
   .patch(

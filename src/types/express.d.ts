@@ -8,11 +8,13 @@ import { IModel } from '@/modules/model/model.types';
 declare global {
   namespace Express {
     interface Request {
+      fileLimit?: number;
+      fieldName?: string;
       user: JwtPayload | IUser;
       brand: IBrand;
       blog: IBlog;
-      getUser:IUser;
-      model:IModel
+      getUser: IUser;
+      model: IModel;
     }
   }
 }

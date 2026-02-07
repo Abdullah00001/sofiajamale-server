@@ -1,5 +1,6 @@
 import { Router } from 'express';
 
+import AdminBagRoutes from '@/modules/adminBag/adminBag.routes';
 import AuthRoutes from '@/modules/auth/auth.routes';
 import BlogRoutes from '@/modules/blog/blog.routes';
 import BrandRoutes from '@/modules/brand/brand.routes';
@@ -16,6 +17,7 @@ const routes: Router[] = [
   LegalRoutes,
   UserRoutes,
   ModelRoutes,
+  AdminBagRoutes,
 ];
 
 const v1Routes = Router();

@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import { container } from 'tsyringe';
 
-import upload from '@/middlewares/multer.middleware';
+import {
+  uploadSingle,
+  handleMulterError,
+} from '@/middlewares/multer.middleware';
 import { validateReqBody } from '@/middlewares/validateReqBody.middleware';
 import { AuthMiddleware } from '@/modules/auth/auth.middlewares';
 import { ModelController } from '@/modules/model/model.controllers';
@@ -21,7 +24,8 @@ router
   .route('/admin/model')
   .post(
     authMiddleware.checkAdminAccessToken,
-    upload.single('modelImage'),
+    uploadSingle('modelImage'),
+    handleMulterError,
     validateReqBody(CreateModelSchema),
     controller.createModel
   )
@@ -34,7 +38,8 @@ router
   .put(
     authMiddleware.checkAdminAccessToken,
     middleware.findModelById,
-    upload.single('modelImage'),
+    uploadSingle('modelImage'),
+    handleMulterError,
     validateReqBody(UpdateModelSchema),
     controller.updateModelWithImage
   )

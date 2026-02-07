@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { container } from 'tsyringe';
 
-import upload from '@/middlewares/multer.middleware';
+import {uploadSingle,handleMulterError} from '@/middlewares/multer.middleware';
 import { validateReqBody } from '@/middlewares/validateReqBody.middleware';
 import { AuthMiddleware } from '@/modules/auth/auth.middlewares';
 import { BlogController } from '@/modules/blog/blog.controllers';
@@ -23,7 +23,8 @@ router
   .post(
     validateReqBody(CreateBlogSchema),
     authMiddleware.checkAdminAccessToken,
-    upload.single('blogImage'),
+    uploadSingle('blogImage'),
+    handleMulterError,
     controller.createBlog
   )
   .get(authMiddleware.checkAdminAccessToken, controller.retrieveBlogs);
@@ -39,7 +40,8 @@ router
     validateReqBody(UpdateBlogSchema),
     authMiddleware.checkAdminAccessToken,
     middleware.findBlogById,
-    upload.single('blogImage'),
+    uploadSingle('blogImage'),
+    handleMulterError,
     controller.updateBlogInfoWithImage
   )
   .patch(

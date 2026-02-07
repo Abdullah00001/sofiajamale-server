@@ -1,7 +1,7 @@
 import path from 'path';
 
-import { Request } from 'express';
-import multer, { FileFilterCallback } from 'multer';
+import { NextFunction, Request, Response } from 'express';
+import multer, { FileFilterCallback, MulterError } from 'multer';
 
 const storage = multer.diskStorage({
   destination: (_req: Request, _file, cb) => {
@@ -40,10 +40,77 @@ export const docsUpload = multer({
   storage: storage,
 });
 
-const upload = multer({
+// Base upload configuration
+const baseUpload = multer({
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024, files: 10 }, // Global max limit
   fileFilter: imageFileFilter,
 });
 
-export default upload;
+// Wrapper to set the limit in the request
+export const uploadArray = (fieldName: string, maxCount: number) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    req.fileLimit = maxCount; // Store the route-specific limit
+    req.fieldName = fieldName; // Store the field name
+    baseUpload.array(fieldName, maxCount)(req, res, next);
+  };
+};
+
+// Wrapper for single file
+export const uploadSingle = (fieldName: string) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    req.fileLimit = 1;
+    req.fieldName = fieldName;
+    baseUpload.single(fieldName)(req, res, next);
+  };
+};
+
+// Multer error handler middleware - reads from req.fileLimit
+export const handleMulterError = (
+  err: any,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  if (err instanceof MulterError) {
+    const fileLimit = req.fileLimit || 10; // Use route limit or default to 10
+    const fieldName = req.fieldName || 'file';
+
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        success: false,
+        status: 400,
+        message: 'File size too large. Maximum allowed size is 5MB per file.',
+      });
+    }
+    if (err.code === 'LIMIT_FILE_COUNT') {
+      return res.status(400).json({
+        success: false,
+        status: 400,
+        message: `Too many files. Maximum allowed is ${fileLimit} files.`,
+      });
+    }
+    if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      return res.status(400).json({
+        success: false,
+        status: 400,
+        message: `Unexpected field name. Expected field: '${fieldName}'.`,
+      });
+    }
+    return res.status(400).json({
+      success: false,
+      status: 400,
+      message: err.message || 'File upload error.',
+    });
+  }
+
+  if (err && err.message && err.message.includes('Only .jpeg')) {
+    return res.status(400).json({
+      success: false,
+      status: 400,
+      message: err.message,
+    });
+  }
+
+  next(err);
+};

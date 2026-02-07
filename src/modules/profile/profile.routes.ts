@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import { container } from 'tsyringe';
 
-import upload from '@/middlewares/multer.middleware';
+import {
+  uploadSingle,
+  handleMulterError,
+} from '@/middlewares/multer.middleware';
 import { validateReqBody } from '@/middlewares/validateReqBody.middleware';
 import { AuthMiddleware } from '@/modules/auth/auth.middlewares';
 import { ProfileController } from '@/modules/profile/profile.controllers';
@@ -22,7 +25,8 @@ router.post(
   '/profile/avatar',
   authMiddleware.checkAccessToken,
   authMiddleware.checkUserAccountStatus,
-  upload.single('avatar'),
+  uploadSingle('avatar'),
+  handleMulterError,
   controller.uploadAvatar
 );
 
@@ -66,7 +70,8 @@ router.post(
   '/admin/profile/avatar',
   authMiddleware.checkAdminAccessToken,
   authMiddleware.checkUserAccountStatus,
-  upload.single('avatar'),
+  uploadSingle('avatar'),
+  handleMulterError,
   controller.uploadAvatar
 );
 
