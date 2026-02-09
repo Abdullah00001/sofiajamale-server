@@ -1,14 +1,20 @@
+import { join } from 'path';
+
 import type { Request, Response, NextFunction } from 'express';
-import type { ZodType } from 'zod';
+import { container } from 'tsyringe';
+import { type ZodType } from 'zod';
+
+import { SystemUtils } from '@/utils/system.utils';
 
 const ALLOWED_METHODS = ['POST', 'PUT', 'PATCH'] as const;
 
 export const validateReqBody =
   <T>(schema: ZodType<T>) =>
-  (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     if (!ALLOWED_METHODS.includes(req.method as any)) {
       return next();
     }
+    const files = req.files as Express.Multer.File[];
 
     const result = schema.safeParse(req.body);
 
@@ -17,7 +23,19 @@ export const validateReqBody =
         field: issue.path.join('.') || 'body',
         message: issue.message,
       }));
+      if (files && files.length > 0) {
+        const systemUtils = container.resolve(SystemUtils);
+        const fileNames = files.map((file) => file.filename);
+        const fileCleanupPromises = fileNames.map(async (file) => {
+          const filePath = join(__dirname, '../../public/temp', file);
+          return systemUtils.unlinkFile({ filePath }).catch((error) => {
+            console.error(`Failed to delete file ${filePath}:`, error);
+            // Continue even if file deletion fails
+          });
+        });
 
+        await Promise.all(fileCleanupPromises);
+      }
       res.status(422).json({
         success: false,
         message: 'Request body validation failed',

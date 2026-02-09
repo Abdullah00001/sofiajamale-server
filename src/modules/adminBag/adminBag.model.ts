@@ -1,5 +1,6 @@
 import { model, Model, Schema, Types } from 'mongoose';
 
+import { CURRENCIES } from '@/const';
 import {
   IAdminBags,
   TAdminBagPriceStatus,
@@ -11,6 +12,12 @@ const PriceStatusSchema = new Schema<TAdminBagPriceStatus>(
     trend: { type: String, required: true, enum: TrendEnum },
     changePercentage: { type: Number, required: true },
     currentValue: { type: Number, required: true },
+    currency: {
+      type: String,
+      required: true,
+      enum: CURRENCIES,
+      default: 'EUR',
+    },
   },
   { _id: false }
 );

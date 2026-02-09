@@ -1,13 +1,18 @@
 import { Schema } from 'mongoose';
 
+import { CURRENCIES } from '@/const';
+
 export enum TrendEnum {
   UP = 'up',
   DOWN = 'down',
   STABLE = 'stable',
 }
 
+export type Currency = typeof CURRENCIES[number];
+
 export type TAdminBagPriceStatus = {
   currentValue: number;
+  currency: Currency;
   changePercentage: number;
   trend: TrendEnum;
 };

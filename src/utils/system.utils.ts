@@ -8,11 +8,80 @@ import timezone from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
 import { injectable } from 'tsyringe';
 
+import { CURRENCIES } from '@/const';
+
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+type Currency = (typeof CURRENCIES)[number];
+
 @injectable()
 export class SystemUtils {
+  /* ------------------------------------------------------------------
+   * PRICE CALCULATIONS
+   * ------------------------------------------------------------------ */
+
+  /**
+   * Get the number of decimal places (minor units) for a currency
+   * Most currencies use 2 decimal places, but some like JPY use 0
+   */
+  private getCurrencyMinorUnits(currency: Currency): number {
+    const zeroDecimalCurrencies: Currency[] = ['JPY'];
+    return zeroDecimalCurrencies.includes(currency) ? 0 : 2;
+  }
+
+  /**
+   * Convert major unit price to minor units (cents, pence, etc.)
+   * @param amount - Price in major units (e.g., 99.99 EUR)
+   * @param currency - Currency code
+   * @returns Price in minor units (e.g., 9999 cents)
+   *
+   * @example
+   * toMinorUnits(99.99, 'EUR') // Returns 9999
+   * toMinorUnits(1000, 'JPY')  // Returns 1000 (JPY has no minor units)
+   */
+  toMinorUnits(amount: number, currency: Currency): number {
+    const minorUnits = this.getCurrencyMinorUnits(currency);
+    return Math.round(amount * Math.pow(10, minorUnits));
+  }
+
+  /**
+   * Convert minor unit price to major units (dollars, euros, etc.)
+   * @param amount - Price in minor units (e.g., 9999 cents)
+   * @param currency - Currency code
+   * @returns Price in major units (e.g., 99.99 EUR)
+   *
+   * @example
+   * toMajorUnits(9999, 'EUR') // Returns 99.99
+   * toMajorUnits(1000, 'JPY')  // Returns 1000 (JPY has no minor units)
+   */
+  toMajorUnits(amount: number, currency: Currency): number {
+    const minorUnits = this.getCurrencyMinorUnits(currency);
+    return amount / Math.pow(10, minorUnits);
+  }
+
+  /**
+   * Format price with currency symbol and proper decimals
+   * @param amount - Price in major units
+   * @param currency - Currency code
+   * @returns Formatted price string
+   *
+   * @example
+   * formatPrice(1234.56, 'EUR') // Returns "€1,234.56"
+   * formatPrice(1000, 'JPY')    // Returns "¥1,000"
+   * formatPrice(99.99, 'USD')   // Returns "$99.99"
+   */
+  formatPrice(amount: number, currency: Currency): string {
+    const minorUnits = this.getCurrencyMinorUnits(currency);
+
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: minorUnits,
+      maximumFractionDigits: minorUnits,
+    }).format(amount);
+  }
+
   /* ------------------------------------------------------------------
    * TIME & CALCULATION
    * ------------------------------------------------------------------ */
@@ -104,6 +173,10 @@ export class SystemUtils {
     const ms = this.expiresInTimeUnitToMs(duration);
     return Date.now() - new Date(oldDate).getTime() >= ms;
   }
+
+  /* ------------------------------------------------------------------
+   * FILE OPERATIONS
+   * ------------------------------------------------------------------ */
 
   async unlinkFile({ filePath }: { filePath: string }): Promise<void> {
     try {

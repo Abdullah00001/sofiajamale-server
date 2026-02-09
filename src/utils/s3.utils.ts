@@ -2,6 +2,7 @@ import { createReadStream } from 'fs';
 import { unlink } from 'fs/promises';
 
 import { DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import mime from 'mime-types';
 import { injectable } from 'tsyringe';
 
 import s3Client from '@/configs/s3Client.config';
@@ -23,11 +24,12 @@ export class S3Utils {
     key: string;
   }): Promise<string> {
     try {
+      const contentType = mime.lookup(filePath);
       const stream = createReadStream(filePath);
       const command = new PutObjectCommand({
         Key: key,
         Bucket: this.bucketName,
-        ContentType: mimeType,
+        ContentType: contentType || `image/${mimeType.replace(/^\./, '')}`,
         Body: stream,
       });
       await s3Client.send(command);

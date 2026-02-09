@@ -66,4 +66,6 @@ export class AdminBagService {
       throw new Error('Unknown Error Occurred In Admin Bag Creation Service');
     }
   }
+
+  async getAdminBags(): Promise<void> {}
 }

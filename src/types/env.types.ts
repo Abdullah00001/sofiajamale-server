@@ -16,6 +16,7 @@ type TEnv = {
   S3_SECRET_KEY: string;
   S3_REGION: string;
   S3_BUCKET_NAME: string;
+  EXCHANGE_RATE_API_KEY:string;
 };
 
 export default TEnv;

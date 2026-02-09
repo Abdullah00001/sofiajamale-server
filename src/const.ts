@@ -17,3 +17,13 @@ export const adminAccessTokenExpiresIn = '15m';
 export const refreshTokenExpiresInWithOutRememberMe = '3d';
 export const refreshTokenExpiresInWithRememberMe = '30d';
 export const otpExpireAt = 4;
+export const baseCurrency = 'EUR' as const;
+export const CURRENCIES = [
+  'EUR',
+  'USD',
+  'GBP',
+  'CHF',
+  'JPY',
+  'CAD',
+  'AUD',
+] as const;
