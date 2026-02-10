@@ -7,7 +7,7 @@ export class CreateAdminBagDTO extends BaseDTO<IAdminBags> {
   public _id: Schema.Types.ObjectId;
   public bagBrand: Schema.Types.ObjectId;
   public bagModel: Schema.Types.ObjectId;
-  public images: string[];
+  public image: string;
   public productionYear: Date;
   public priceStatus: {
     currentValue: number;
@@ -20,7 +20,7 @@ export class CreateAdminBagDTO extends BaseDTO<IAdminBags> {
     super(adminBag);
     this.bagBrand = adminBag.bagBrand;
     this.bagModel = adminBag.bagModel;
-    this.images = adminBag.images;
+    this.image = adminBag.image;
     this.productionYear = adminBag.productionYear;
     this.priceStatus = adminBag.priceStatus;
     this.createdAt = adminBag.createdAt;

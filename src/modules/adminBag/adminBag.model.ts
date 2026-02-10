@@ -36,7 +36,7 @@ const AdminBagSchema = new Schema<IAdminBags>(
       required: true,
       index: true,
     },
-    images: [{ type: String, required: true }],
+    image: { type: String, required: true },
     productionYear: { type: Date, required: true },
     priceStatus: PriceStatusSchema,
     user: { type: Types.ObjectId, ref: 'User', required: true },

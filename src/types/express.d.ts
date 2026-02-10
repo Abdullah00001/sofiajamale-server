@@ -1,5 +1,6 @@
 import { JwtPayload } from 'jsonwebtoken';
 
+import { IAdminBags } from '@/modules/adminBag/adminBag.types';
 import { IUser } from '@/modules/auth/auth.types';
 import { IBlog } from '@/modules/blog/blog.types';
 import { IBrand } from '@/modules/brand/brand.types';
@@ -17,6 +18,7 @@ declare global {
       getUser: IUser;
       model: IModel;
       wish: IWishlist;
+      adminBag: IAdminBags;
     }
   }
 }

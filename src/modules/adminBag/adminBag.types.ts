@@ -1,6 +1,7 @@
 import { Schema } from 'mongoose';
 
 import { CURRENCIES } from '@/const';
+import { TActionLink, TPaginationLinks } from '@/modules/brand/brand.types';
 
 export enum TrendEnum {
   UP = 'up',
@@ -23,8 +24,27 @@ export interface IAdminBags {
   updatedAt: Date;
   bagBrand: Schema.Types.ObjectId;
   bagModel: Schema.Types.ObjectId;
-  images: string[];
+  image: string;
   productionYear: Date;
   priceStatus: TAdminBagPriceStatus;
   user: Schema.Types.ObjectId;
 }
+
+
+export type TActions = {
+  create?: TActionLink;
+  delete?: TActionLink;
+};
+
+export type TGetAdminBagsResponse = {
+  data: IAdminBags[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    links: TPaginationLinks | null;
+    actions?: TActions;
+    showing: string;
+  };
+};

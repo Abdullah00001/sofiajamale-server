@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { container } from 'tsyringe';
 
-import { uploadSingle } from '@/middlewares/multer.middleware';
+import { handleMulterError, uploadSingle } from '@/middlewares/multer.middleware';
 import { validateReqBody } from '@/middlewares/validateReqBody.middleware';
 import { AuthMiddleware } from '@/modules/auth/auth.middlewares';
 import { WishlistController } from '@/modules/wishlist/wishlist.controllers';
@@ -19,6 +19,7 @@ router
   .post(
     authMiddleware.checkAccessToken,
     uploadSingle('wishListImage'),
+    handleMulterError,
     validateReqBody(CreateWishSchema),
     controller.createWish
   )
