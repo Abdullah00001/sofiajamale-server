@@ -45,7 +45,7 @@ export class WishlistController extends BaseController {
       image: image.filename,
     });
 
-    res.status(200).json({
+    res.status(201).json({
       success: true,
       status: 201,
       message: 'Wish created successfully',

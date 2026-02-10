@@ -44,9 +44,7 @@ export class WishlistService {
     priceDescription: IPriceDescription;
     image: string;
   }): Promise<CreateWishDTO> {
-    console.log('Creating wish with image:', image);
     const filePath = join(__dirname, '../../../public/temp', image);
-    console.log('file path', filePath);
     const fileExtension = extname(filePath);
     const s3Key = `wishlist/${uuidv4()}/${Date.now()}${fileExtension}`;
     const fileInfo = {
@@ -56,7 +54,6 @@ export class WishlistService {
     };
     try {
       const url = await this.s3Utils.singleUpload(fileInfo);
-      console.log(url);
       const newWish = new Wishlist({
         userId: new Types.ObjectId(user.sub as string),
         brandId: new Types.ObjectId(brandId),
