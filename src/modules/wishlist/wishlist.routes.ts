@@ -1,8 +1,7 @@
 import { Router } from 'express';
 import { container } from 'tsyringe';
 
-
-import {  uploadSingle } from '@/middlewares/multer.middleware';
+import { uploadSingle } from '@/middlewares/multer.middleware';
 import { validateReqBody } from '@/middlewares/validateReqBody.middleware';
 import { AuthMiddleware } from '@/modules/auth/auth.middlewares';
 import { WishlistController } from '@/modules/wishlist/wishlist.controllers';
@@ -23,11 +22,16 @@ router
     validateReqBody(CreateWishSchema),
     controller.createWish
   )
-  .get(authMiddleware.checkAccessToken);
+  .get(authMiddleware.checkAccessToken, controller.getWishes);
 
 router
   .route('/wishlists/:id')
-  .patch(authMiddleware.checkAccessToken)
+  .patch(
+    authMiddleware.checkAccessToken,
+    middleware.findWishById,
+    controller.changeWishStatus,
+    controller.changeWishStatus
+  )
   .delete(
     authMiddleware.checkAccessToken,
     middleware.findWishById,

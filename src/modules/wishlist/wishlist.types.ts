@@ -1,6 +1,10 @@
 import { Types } from 'mongoose';
 
-import { IBrand } from '@/modules/brand/brand.types';
+import {
+  IBrand,
+  TActionLink,
+  TPaginationLinks,
+} from '@/modules/brand/brand.types';
 import { IModel } from '@/modules/model/model.types';
 
 export enum WishPriority {
@@ -34,7 +38,27 @@ export interface IWishlist {
   note?: string;
   priceDescription: IPriceDescription;
   status?: PurchaseStatus;
-  images: string[];
+  image: string;
   createdAt: Date;
   updatedAt: Date;
 }
+
+export type TWishlistActions = {
+  create?: TActionLink;
+  update?: TActionLink;
+  delete?: TActionLink;
+};
+
+export type TGetWishlistResponse = {
+  data: IWishlist[];
+  totalTargetPrice: number;
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    links: TPaginationLinks | null;
+    actions?: TWishlistActions;
+    showing: string;
+  };
+};

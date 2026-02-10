@@ -10,6 +10,8 @@ import Wishlist from '@/modules/wishlist/wishlist.model';
 import {
   IPriceDescription,
   IWishlist,
+  TGetWishlistResponse,
+  TWishlistActions,
 } from '@/modules/wishlist/wishlist.types';
 import { S3Utils } from '@/utils/s3.utils';
 import { SystemUtils } from '@/utils/system.utils';
@@ -30,7 +32,7 @@ export class WishlistService {
     latherType,
     note,
     priceDescription,
-    images,
+    image,
   }: {
     user: JwtPayload;
     brandId: string;
@@ -40,22 +42,23 @@ export class WishlistService {
     latherType: string;
     note?: string;
     priceDescription: IPriceDescription;
-    images: string[];
+    image: string;
   }): Promise<CreateWishDTO> {
-    const fileInfos: { path: string; mimeType: string; s3Key: string }[] =
-      images.map((file) => ({
-        path: join(__dirname, '../../../public/temp', file),
-        mimeType: extname(file),
-        s3Key: `wishList/${uuidv4()}/${Date.now()}${extname(file)}`,
-      }));
+    console.log('Creating wish with image:', image);
+    const filePath = join(__dirname, '../../../public/temp', image);
+    console.log('file path', filePath);
+    const fileExtension = extname(filePath);
+    const s3Key = `wishlist/${uuidv4()}/${Date.now()}${fileExtension}`;
+    const fileInfo = {
+      filePath,
+      key: s3Key,
+      mimeType: fileExtension,
+    };
     try {
-      const urls = await Promise.all(
-        fileInfos.map(({ path, mimeType, s3Key }) =>
-          this.s3Utils.singleUpload({ filePath: path, mimeType, key: s3Key })
-        )
-      );
+      const url = await this.s3Utils.singleUpload(fileInfo);
+      console.log(url);
       const newWish = new Wishlist({
-        userId: new Types.ObjectId(user._id as string),
+        userId: new Types.ObjectId(user.sub as string),
         brandId: new Types.ObjectId(brandId),
         modelId: new Types.ObjectId(modelId),
         priority,
@@ -63,7 +66,7 @@ export class WishlistService {
         latherType,
         note,
         priceDescription,
-        images: urls,
+        image: url,
       });
       await newWish.save();
       await newWish.populate([
@@ -72,9 +75,7 @@ export class WishlistService {
       ]);
       return CreateWishDTO.fromEntity(newWish);
     } catch (error) {
-      await Promise.all(
-        fileInfos.map(({ s3Key }) => this.s3Utils.singleDelete({ key: s3Key }))
-      );
+      await this.s3Utils.singleDelete({ key: fileInfo.key });
       if (error instanceof Error) throw error;
       throw new Error('An unexpected error occurred on create wish service');
     }
@@ -82,14 +83,198 @@ export class WishlistService {
 
   async deleteWish({ wish }: { wish: IWishlist }): Promise<void> {
     try {
-      const keys = wish.images.map((url) =>
-        this.systemUtils.extractS3KeyFromUrl(url)
-      );
-      await Promise.all(keys.map((key) => this.s3Utils.singleDelete({ key })));
+      const key = this.systemUtils.extractS3KeyFromUrl(wish.image);
+      await this.s3Utils.singleDelete({ key });
       await Wishlist.deleteOne({ _id: wish._id });
     } catch (error) {
       if (error instanceof Error) throw error;
       throw new Error('An unexpected error occurred on delete wish service');
+    }
+  }
+
+  async getWishes({
+    user,
+    page,
+    limit,
+    priority,
+  }: {
+    user: JwtPayload;
+    page?: string;
+    limit?: string;
+    priority?: string;
+  }): Promise<TGetWishlistResponse> {
+    try {
+      const queryPage = parseInt(page || '1', 10);
+      const queryLimit = parseInt(limit || '10', 10);
+      const skip = (queryPage - 1) * queryLimit;
+      const userId = new Types.ObjectId(user.sub as string);
+      const matchStage: { userId: Types.ObjectId; priority?: string } = {
+        userId,
+      };
+      if (priority) matchStage.priority = priority;
+
+      const [result] = await Wishlist.aggregate([
+        { $match: matchStage },
+        {
+          $facet: {
+            wishes: [
+              { $skip: skip },
+              { $limit: queryLimit },
+              {
+                $lookup: {
+                  from: 'brands',
+                  localField: 'brandId',
+                  foreignField: '_id',
+                  as: 'brandData',
+                },
+              },
+              { $unwind: '$brandData' },
+              {
+                $lookup: {
+                  from: 'models',
+                  localField: 'modelId',
+                  foreignField: '_id',
+                  as: 'modelData',
+                },
+              },
+              { $unwind: '$modelData' },
+              {
+                $addFields: {
+                  brandId: {
+                    _id: '$brandData._id',
+                    brandName: '$brandData.brandName',
+                    brandLogo: '$brandData.brandLogo',
+                  },
+                  modelId: {
+                    _id: '$modelData._id',
+                    modelName: '$modelData.modelName',
+                    modelImage: '$modelData.modelImage',
+                    brandId: '$modelData.brandId',
+                  },
+                },
+              },
+              {
+                $project: {
+                  brandData: 0,
+                  modelData: 0,
+                },
+              },
+            ],
+            totalCount: [{ $count: 'count' }],
+            totalTargetPrice: [
+              {
+                $group: {
+                  _id: null,
+                  total: { $sum: '$priceDescription.targetPrice' },
+                },
+              },
+            ],
+          },
+        },
+      ]);
+
+      // Extract the results
+      const wishes = result?.wishes || [];
+      const totalCount = result?.totalCount[0]?.count || 0;
+      const totalTargetPrice = result?.totalTargetPrice[0]?.total || 0;
+      const totalPages = Math.ceil(totalCount / queryLimit);
+      // Calculate showing range
+      const from = totalCount === 0 ? 0 : skip + 1;
+      const to = Math.min(skip + queryLimit, totalCount);
+      const showing = `Showing ${from} to ${to} of ${totalCount} results`;
+      const basePath = '/wishlists';
+      const actions: TWishlistActions = {
+        create: {
+          href: `${basePath}`,
+          method: 'POST',
+        },
+        update:
+          wishes.length > 0
+            ? {
+                href: `${basePath}/:id`,
+                method: 'PATCH',
+              }
+            : undefined,
+        delete:
+          wishes.length > 0
+            ? {
+                href: `${basePath}/:id`,
+                method: 'DELETE',
+              }
+            : undefined,
+      };
+      // If no data, return null for links
+      if (wishes.length === 0) {
+        return {
+          data: wishes,
+          totalTargetPrice,
+          meta: {
+            total: totalCount,
+            page: queryPage,
+            limit: queryLimit,
+            totalPages,
+            links: null,
+            actions,
+            showing,
+          },
+        };
+      }
+      // Helper function to build links
+      const buildLink = (pageNum: number): string => {
+        const query = new URLSearchParams();
+        query.set('page', pageNum.toString());
+        query.set('limit', queryLimit.toString());
+        if (priority) query.set('priority', priority);
+        return `${basePath}?${query.toString()}`;
+      };
+
+      return {
+        data: wishes,
+        totalTargetPrice,
+        meta: {
+          total: totalCount,
+          page: queryPage,
+          limit: queryLimit,
+          totalPages,
+          links: {
+            first: buildLink(1),
+            last: buildLink(totalPages),
+            previous: queryPage > 1 ? buildLink(queryPage - 1) : null,
+            next: queryPage < totalPages ? buildLink(queryPage + 1) : null,
+            current: buildLink(queryPage),
+          },
+          actions,
+          showing,
+        },
+      };
+    } catch (error) {
+      if (error instanceof Error) throw error;
+      throw new Error('An unexpected error occurred on get wishes service');
+    }
+  }
+
+  async changeWishStatus({
+    wish,
+    status,
+  }: {
+    wish: IWishlist;
+    status: string;
+  }): Promise<CreateWishDTO> {
+    try {
+      const updatedWish = await Wishlist.findOneAndUpdate(
+        { _id: wish._id },
+        { status },
+        { new: true }
+      );
+      if (!updatedWish) {
+        throw new Error('Something went wrong while updating wish status');
+      }
+      return CreateWishDTO.fromEntity(updatedWish);
+    } catch (error) {
+      if (error instanceof Error) throw error;
+      throw new Error(
+        'An unexpected error occurred on change wish status service'
+      );
     }
   }
 }

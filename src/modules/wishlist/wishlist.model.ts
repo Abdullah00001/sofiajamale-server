@@ -45,7 +45,7 @@ const WishlistSchema = new Schema<IWishlist>(
       enum: ['out_of_stock', 'ordered', 'purchased', 'available'],
       default: 'available',
     },
-    images: [{ type: String }],
+    image: { type: String ,required: true},
   },
   { timestamps: true }
 );

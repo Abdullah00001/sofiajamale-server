@@ -18,7 +18,7 @@ export class CreateWishDTO extends BaseDTO<IWishlist> {
     retailPrice: number | null;
     marketValue: number | null;
   };
-  public images: string[];
+  public image: string;
   public status: string;
 
   constructor(data: IWishlist) {
@@ -37,7 +37,7 @@ export class CreateWishDTO extends BaseDTO<IWishlist> {
       retailPrice: data.priceDescription.retailPrice!,
       marketValue: data.priceDescription.marketValue!,
     };
-    this.images = data.images;
+    this.image = data.image;
     this.status = data.status!;
   }
 }
@@ -55,7 +55,7 @@ export class GetWishDTO extends BaseDTO<IWishlist> {
     retailPrice: number | null;
     marketValue: number | null;
   };
-  public images: string[];
+  public image: string;
   public status: string;
   public createdAt: Date;
   public updatedAt: Date;
@@ -72,7 +72,7 @@ export class GetWishDTO extends BaseDTO<IWishlist> {
       retailPrice: data.priceDescription.retailPrice!,
       marketValue: data.priceDescription.marketValue!,
     };
-    this.images = data.images;
+    this.image = data.image;
     this.status = data.status!;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
