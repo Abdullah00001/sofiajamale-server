@@ -83,7 +83,6 @@ export class AdminBagService {
       const queryLimit = parseInt(limit || '10', 10);
       const isAdmin = user.role === Role.ADMIN;
       const skip = (queryPage - 1) * queryLimit;
-      console.log('hello');
       const [result] = await AdminBag.aggregate([
         {
           $facet: {

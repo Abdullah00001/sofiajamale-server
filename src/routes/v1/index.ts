@@ -8,6 +8,7 @@ import LegalRoutes from '@/modules/legal/legal.routes';
 import ModelRoutes from '@/modules/model/model.routes';
 import ProfileRoutes from '@/modules/profile/profile.routes';
 import UserRoutes from '@/modules/user/user.routes';
+import UserBagRoutes from '@/modules/userBag/userBag.routes';
 import WishlistRoutes from '@/modules/wishlist/wishlist.routes';
 
 const routes: Router[] = [
@@ -20,6 +21,7 @@ const routes: Router[] = [
   ModelRoutes,
   AdminBagRoutes,
   WishlistRoutes,
+  UserBagRoutes,
 ];
 
 const v1Routes = Router();

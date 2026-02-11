@@ -129,7 +129,6 @@ export class ModelController extends BaseController {
 
   private async _searchModel(req: Request, res: Response): Promise<void> {
     const { query } = req.query;
-    console.log(query);
     if (!query || typeof query !== 'string') {
       res.status(400).json({
         success: false,

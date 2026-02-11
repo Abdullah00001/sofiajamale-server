@@ -7,7 +7,7 @@ import {
   TrendEnum,
 } from '@/modules/adminBag/adminBag.types';
 
-const PriceStatusSchema = new Schema<TAdminBagPriceStatus>(
+export const PriceStatusSchema = new Schema<TAdminBagPriceStatus>(
   {
     trend: { type: String, required: true, enum: TrendEnum },
     changePercentage: { type: Number, required: true },
