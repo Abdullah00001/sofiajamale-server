@@ -275,6 +275,13 @@ export const baseUpdateSchema = z.object({
     .optional(),
 
   notes: z.union([z.string(), z.null()]).optional(),
+  deletedImageUrl: z
+    .array(
+      z.string().url({
+        error: 'Each deleted image URL must be a valid URL',
+      })
+    )
+    .optional(),
 });
 
 export const PatchCollectionSchema = baseUpdateSchema
@@ -284,3 +291,47 @@ export const PatchCollectionSchema = baseUpdateSchema
   });
 
 export type TPatchUserCollection = z.infer<typeof PatchCollectionSchema>;
+
+export const CollectionQuerySchema = z.object({
+  // Brand filter - MongoDB ObjectId
+  brand: z
+    .string()
+    .refine((val) => isValidObjectId(val), {
+      message: 'Invalid Brand ID format',
+    })
+    .optional(),
+
+  // Production year filter
+  productionYear: z.coerce.number().int().min(1900).optional(),
+
+  // Purchase year filter
+  purchaseYear: z.coerce.number().int().min(1900).optional(),
+
+  // Value range filters
+  valueRangeMin: z.coerce.number().min(0).optional(),
+  valueRangeMax: z.coerce.number().min(0).optional(),
+
+  // Leather type filter
+  latherType: z.string().optional(),
+
+  // Sort by created date (1 for ascending, -1 for descending)
+  sortByCreatedAt: z
+    .union([z.literal('1'), z.literal('-1'), z.coerce.number()])
+    .transform((val) => {
+      if (typeof val === 'string') {
+        return parseInt(val);
+      }
+      return val;
+    })
+    .optional(),
+
+  // Sort by trending (up/down)
+  sortByTrending: z.enum(['up', 'down']).optional(),
+
+  // Pagination
+  page: z.coerce.number().int().min(1).default(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(10).optional(),
+  isArchived: z.coerce.boolean().optional(),
+});
+
+export type TCollectionQuery = z.infer<typeof CollectionQuerySchema>;

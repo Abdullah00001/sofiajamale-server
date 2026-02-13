@@ -10,12 +10,14 @@ import {
   createCollectionRequestBodyValidationMiddleware,
   validateReqBody,
 } from '@/middlewares/validateReqBody.middleware';
+import { validateReqQuery } from '@/middlewares/validateReqQuery.middleware';
 import { AuthMiddleware } from '@/modules/auth/auth.middlewares';
 import { UserBagController } from '@/modules/userBag/userBag.controllers';
 import { UserBagMiddleware } from '@/modules/userBag/userBag.middlewares';
 import {
   CreateCollectionSchema,
   PatchCollectionSchema,
+  CollectionQuerySchema,
 } from '@/modules/userBag/userBag.schemas';
 
 const router = Router();
@@ -26,9 +28,15 @@ const authMiddleware = container.resolve(AuthMiddleware);
 
 // USer Routes
 const createCollectionImageFields: FieldConfig[] = [
-  { name: 'images', maxCount: 9,optional:false },
-  { name: 'primaryImage', maxCount: 1,optional:false },
-  { name: 'receiptImage', maxCount: 1,optional:true },
+  { name: 'images', maxCount: 9, optional: false },
+  { name: 'primaryImage', maxCount: 1, optional: false },
+  { name: 'receiptImage', maxCount: 1, optional: true },
+];
+
+const updateCollectionImageFields: FieldConfig[] = [
+  { name: 'images', maxCount: 9, optional: true },
+  { name: 'primaryImage', maxCount: 1, optional: true },
+  { name: 'receiptImage', maxCount: 1, optional: true },
 ];
 router
   .route('/collections')
@@ -39,6 +47,12 @@ router
     handleMulterError,
     createCollectionRequestBodyValidationMiddleware(CreateCollectionSchema),
     controller.createCollection
+  )
+  .get(
+    authMiddleware.checkAccessToken,
+    authMiddleware.checkUserAccountStatus,
+    validateReqQuery(CollectionQuerySchema),
+    controller.getUserCollection
   );
 
 router
@@ -53,7 +67,10 @@ router
     authMiddleware.checkAccessToken,
     authMiddleware.checkUserAccountStatus,
     middleware.findBagCollectionById,
+    uploadFields(updateCollectionImageFields, true),
+    handleMulterError,
     validateReqBody(PatchCollectionSchema),
+    controller.updateCollection
   )
   .patch(
     authMiddleware.checkAccessToken,

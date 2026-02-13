@@ -15,6 +15,7 @@ declare global {
       fileLimit?: number;
       fieldName?: string;
       requireAtLeastOne?: boolean;
+      allOptional?: boolean;
       fieldConfig?: FieldConfig[];
       files?: { [fieldname: string]: Express.Multer.File[] };
       user: JwtPayload | IUser;
@@ -25,6 +26,7 @@ declare global {
       wish: IWishlist;
       adminBag: IAdminBags;
       userBagCollection: IUserBag;
+      validatedQuery?: unknown;
     }
   }
 }

@@ -61,35 +61,35 @@ export interface FieldConfig {
 }
 /**
  * Reusable middleware for multiple file fields in ONE request
- * Use this for handling multiple image fields (thumbnail, coverImages, galleryImages, etc.)
  * @param fieldsConfig - Array of {name, maxCount, optional} configurations
- * @param requireAtLeastOne - If true, at least one file must be uploaded across all fields
+ * @param allOptional - If true, all fields are optional and at least one file is required
+ *                      If false (default), all fields are required unless marked optional: true
  * @example
- * // All fields optional
+ * // POST: All fields REQUIRED (default behavior)
  * const productFields = [
+ *   { name: 'thumbnail', maxCount: 1 },
+ *   { name: 'coverImages', maxCount: 5 },
+ *   { name: 'receiptImage', maxCount: 1, optional: true } // Only this is optional
+ * ];
+ * router.post('/products', uploadFields(productFields), handleMulterError, controller);
+ * 
+ * @example
+ * // PUT: All fields OPTIONAL but at least one required
+ * const productUpdateFields = [
  *   { name: 'thumbnail', maxCount: 1, optional: true },
  *   { name: 'coverImages', maxCount: 5, optional: true },
  *   { name: 'galleryImages', maxCount: 10, optional: true }
  * ];
- * router.put('/products/:id', uploadFields(productFields), handleMulterError, controller);
- *
- * @example
- * // At least one file required
- * const productFields = [
- *   { name: 'thumbnail', maxCount: 1, optional: true },
- *   { name: 'receiptImage', maxCount: 1, optional: true }
- * ];
- * router.post('/products', uploadFields(productFields, true), handleMulterError, controller);
+ * router.put('/products/:id', uploadFields(productUpdateFields, true), handleMulterError, controller);
  */
-
 export const uploadFields = (
   fieldsConfig: FieldConfig[],
-  requireAtLeastOne: boolean = false // NEW: Option to require at least one file
+  allOptional: boolean = false // If true, validates "at least one file"
 ) => {
   return (req: Request, res: Response, next: NextFunction) => {
     // Store config for error handler
     req.fieldConfig = fieldsConfig;
-    req.requireAtLeastOne = requireAtLeastOne;
+    req.allOptional = allOptional;
 
     const multerFields = fieldsConfig.map((field) => ({
       name: field.name,
@@ -101,9 +101,10 @@ export const uploadFields = (
         return next(err);
       }
 
-      // Validation: Check if at least one file is required
-      if (requireAtLeastOne) {
-        const files = req.files as MulterFiles;
+      const files = req.files as MulterFiles;
+
+      // MODE 1: All optional (PUT request) - require at least one file
+      if (allOptional) {
         const hasAnyFile = files && Object.keys(files).length > 0;
 
         if (!hasAnyFile) {
@@ -112,6 +113,20 @@ export const uploadFields = (
             status: 400,
             message: 'At least one file must be uploaded.',
           });
+        }
+      }
+      // MODE 2: Default (POST request) - check required fields
+      else {
+        const requiredFields = fieldsConfig.filter((field) => !field.optional);
+
+        for (const field of requiredFields) {
+          if (!files?.[field.name] || files[field.name].length === 0) {
+            return res.status(400).json({
+              success: false,
+              status: 400,
+              message: `Field '${field.name}' is required.`,
+            });
+          }
         }
       }
 
