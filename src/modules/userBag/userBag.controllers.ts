@@ -17,6 +17,8 @@ export class UserBagController extends BaseController {
   public patchCollection: RequestHandler;
   public updateCollection: RequestHandler;
   public getUserCollection: RequestHandler;
+  public deleteOneCollectionByAdmin: RequestHandler;
+  public getAllCollectionForAdmin: RequestHandler;
 
   constructor(private readonly userBagService: UserBagService) {
     super();
@@ -26,6 +28,10 @@ export class UserBagController extends BaseController {
     this.patchCollection = this.wrap(this._patchCollection);
     this.updateCollection = this.wrap(this._updateCollection);
     this.getUserCollection = this.wrap(this._getUserCollection);
+    this.deleteOneCollectionByAdmin = this.wrap(
+      this._deleteOneCollectionByAdmin
+    );
+    this.getAllCollectionForAdmin = this.wrap(this._getAllCollectionForAdmin);
   }
 
   private async _createCollection(req: Request, res: Response): Promise<void> {
@@ -123,6 +129,39 @@ export class UserBagController extends BaseController {
     const user = req.user as IUser;
     const query = req.validatedQuery as TCollectionQuery;
     const data = await this.userBagService.getAllCollections({ query, user });
+    res.status(200).json({
+      success: true,
+      status: 200,
+      message: 'Collection retrieved successfully',
+      ...data,
+    });
+    return;
+  }
+
+  private async _deleteOneCollectionByAdmin(
+    req: Request,
+    res: Response
+  ): Promise<void> {
+    const collection = req.userBagCollection;
+    await this.userBagService.deleteOneCollectionByAdmin({ collection });
+    res.status(200).json({
+      success: true,
+      status: 200,
+      message: 'Collection deleted successfully',
+    });
+    return;
+  }
+
+  private async _getAllCollectionForAdmin(
+    req: Request,
+    res: Response
+  ): Promise<void> {
+    const user = req.user;
+    const query = req.validatedQuery as TCollectionQuery;
+    const data = await this.userBagService.getAllCollectionsForAdmin({
+      user,
+      query,
+    });
     res.status(200).json({
       success: true,
       status: 200,

@@ -87,4 +87,25 @@ router
     controller.deleteCollection
   );
 
+router
+  .route('/admin/collections')
+  .get(
+    authMiddleware.checkAdminAccessToken,
+    validateReqQuery(CollectionQuerySchema),
+    controller.getAllCollectionForAdmin
+  );
+
+router
+  .route('/admin/collections/:id')
+  .get(
+    authMiddleware.checkAdminAccessToken,
+    middleware.findBagCollectionById,
+    controller.getCollectionById
+  )
+  .delete(
+    authMiddleware.checkAdminAccessToken,
+    middleware.findBagCollectionById,
+    controller.deleteOneCollectionByAdmin
+  );
+
 export default router;

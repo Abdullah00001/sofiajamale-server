@@ -55,8 +55,8 @@ export type TGetCollectionsResponse = {
   data: IUserBag[];
   meta: {
     total: number;
-    totalValue: number;
-    averageValue: number;
+    totalValue?: number;
+    averageValue?: number;
     page: number;
     limit: number;
     totalPages: number;

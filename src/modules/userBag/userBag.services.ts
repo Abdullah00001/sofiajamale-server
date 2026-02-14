@@ -586,4 +586,213 @@ export class UserBagService {
       );
     }
   }
+
+  async deleteOneCollectionByAdmin({
+    collection,
+  }: {
+    collection: IUserBag;
+  }): Promise<void> {
+    try {
+      const primaryImageKey = this.systemUtils.extractS3KeyFromUrl(
+        collection.primaryImage
+      );
+      let receiptImageKey: string | null = null;
+      if (collection.receipt) {
+        receiptImageKey = this.systemUtils.extractS3KeyFromUrl(
+          collection.receipt
+        );
+      }
+      const bagImageKeys = collection.images.map((imageUrl) =>
+        this.systemUtils.extractS3KeyFromUrl(imageUrl)
+      );
+      await Promise.all([
+        this.s3Utils.singleDelete({ key: primaryImageKey }),
+        ...(receiptImageKey
+          ? [this.s3Utils.singleDelete({ key: receiptImageKey })]
+          : []),
+        ...bagImageKeys.map((key) => this.s3Utils.singleDelete({ key })),
+        UserCollection.deleteOne({ _id: collection._id }),
+      ]);
+      return;
+    } catch (error) {
+      if (error instanceof Error) throw error;
+      throw new Error(
+        'An Unexpected Error Occurred In Admin Delete One Collections Service'
+      );
+    }
+  }
+
+  async getAllCollectionsForAdmin({
+    user,
+    query,
+  }: {
+    user: JwtPayload;
+    query: TCollectionQuery;
+  }): Promise<TGetCollectionsResponse> {
+    try {
+      const { limit: queryLimit, page: queryPage } = query;
+      const page = queryPage ?? 1;
+      const limit = queryLimit ?? 10;
+      const skip = (page - 1) * limit;
+      const [result] = await UserCollection.aggregate([
+        {
+          $facet: {
+            collections: [
+              { $skip: skip },
+              { $limit: limit },
+              {
+                $lookup: {
+                  from: 'brands',
+                  localField: 'brandId',
+                  foreignField: '_id',
+                  as: 'brand',
+                },
+              },
+              {
+                $unwind: {
+                  path: '$brand',
+                  preserveNullAndEmptyArrays: true,
+                },
+              },
+              {
+                $lookup: {
+                  from: 'models',
+                  localField: 'modelId',
+                  foreignField: '_id',
+                  as: 'model',
+                },
+              },
+              {
+                $unwind: {
+                  path: '$model',
+                  preserveNullAndEmptyArrays: true,
+                },
+              },
+              {
+                $lookup: {
+                  from: 'users',
+                  localField: 'userId',
+                  foreignField: '_id',
+                  as: 'user',
+                },
+              },
+              {
+                $unwind: {
+                  path: '$user',
+                  preserveNullAndEmptyArrays: true,
+                },
+              },
+              {
+                $project: {
+                  _id: 1,
+                  primaryImage: 1,
+                  images: 1,
+                  priceStatus: 1,
+                  isArchived: 1,
+                  createdAt: 1,
+                  updatedAt: 1,
+                  brand: 1,
+                  model: 1,
+                  purchasePrice: 1,
+                  purchaseDate: 1,
+                  'user._id': 1,
+                  'user.name': 1,
+                  'user.avatar': 1,
+                  __v: 1,
+                },
+              },
+            ],
+            metadata: [
+              {
+                $group: {
+                  _id: null,
+                  totalBags: { $sum: 1 },
+                },
+              },
+            ],
+          },
+        },
+      ]);
+      const data = result.collections || [];
+      const metaData = result.metadata[0] || {
+        _id: null,
+        totalBags: 0,
+      };
+      const totalPages = Math.ceil(metaData.totalBags / limit) || 0;
+      const from = metaData.totalBags === 0 ? 0 : skip + 1;
+      const to = Math.min(skip + limit, metaData.totalBags);
+      const showing = `Showing ${from} to ${to} of ${metaData.totalBags} results`;
+      const isAdmin = user.role === 'admin';
+      const basePath = isAdmin ? '/admin/collections' : '/collections';
+      const actions: TCollectionsActions = {
+        create: isAdmin
+          ? undefined
+          : {
+              href: `${basePath}`,
+              method: 'POST',
+            },
+        update_with_image:
+          isAdmin && data.length > 0
+            ? undefined
+            : {
+                href: `${basePath}/:id`,
+                method: 'PUT',
+              },
+        update_only_text:
+          isAdmin && data.length > 0
+            ? undefined
+            : {
+                href: `${basePath}/:id`,
+                method: 'PATCH',
+              },
+        delete: {
+          href: `${basePath}/:id`,
+          method: 'DELETE',
+        },
+      };
+      if (data.length === 0) {
+        return {
+          data,
+          meta: {
+            total: metaData.totalBags,
+            page,
+            limit,
+            totalPages,
+            links: null,
+            actions,
+            showing,
+          },
+        };
+      }
+      const buildLink = (pageNum: number): string => {
+        const params = new URLSearchParams();
+        params.set('page', pageNum.toString());
+        params.set('limit', limit.toString());
+        return `${basePath}?${params.toString()}`;
+      };
+      return {
+        data,
+        meta: {
+          total: metaData.totalBags,
+          page,
+          limit,
+          totalPages,
+          links: {
+            first: buildLink(1),
+            last: buildLink(totalPages),
+            previous: page > 1 ? buildLink(page - 1) : null,
+            next: page < totalPages ? buildLink(page + 1) : null,
+            current: buildLink(page),
+          },
+          actions,
+          showing,
+        },
+      };
+    } catch (error) {
+      if (error instanceof Error) throw error;
+      throw new Error(
+        'An Unexpected Error Occurred In Admin Get All Collections Service'
+      );
+    }
+  }
 }
