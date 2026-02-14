@@ -78,11 +78,11 @@ export class UserBagController extends BaseController {
   private async _patchCollection(req: Request, res: Response): Promise<void> {
     const user = req.user as IUser;
     const collection = req.userBagCollection;
-    const updateData = req.body;
+    const requestUpdateData = req.body;
     const data = await this.userBagService.patchCollection({
       user,
       collection,
-      updateData,
+      requestUpdateData,
     });
     res.status(200).json({
       success: true,

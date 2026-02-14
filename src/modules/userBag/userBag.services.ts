@@ -140,32 +140,41 @@ export class UserBagService {
   async patchCollection({
     user,
     collection,
-    updateData,
+    requestUpdateData,
   }: {
     user: IUser;
     collection: IUserBag;
-    updateData?: Partial<TPatchUserCollection>;
+    requestUpdateData: TPatchUserCollection;
   }): Promise<IUserBag> {
+    const { deletedImages, updatedData } =
+      requestUpdateData as TPatchUserCollection;
+    let images = [...collection.images];
+    const newUpdatedData: Partial<IUserBag> = {
+      ...(updatedData as Partial<IUserBag>),
+    };
     try {
-      const { ...dbUpdateData } = updateData || {};
-
-      // Build MongoDB update operations
-      const updateOperations: {
-        $set?: Partial<TPatchUserCollection>;
-        $pull?: { images: { $in: string[] } };
-      } = {};
-
-      // Add regular field updates
-      if (Object.keys(dbUpdateData).length > 0) {
-        updateOperations.$set = dbUpdateData;
+      if (
+        deletedImages &&
+        deletedImages?.deletedImagesUrls &&
+        deletedImages?.deletedImagesUrls.length > 0
+      ) {
+        images = images.filter(
+          (url) => !deletedImages?.deletedImagesUrls.includes(url)
+        );
+        const deletedImagesKeys = deletedImages?.deletedImagesUrls.map((url) =>
+          this.systemUtils.extractS3KeyFromUrl(url)
+        );
+        await Promise.all(
+          deletedImagesKeys.map((key) => this.s3Utils.singleDelete({ key }))
+        );
+        newUpdatedData.images = images;
       }
-
       const data = await UserCollection.findOneAndUpdate(
         {
           _id: collection._id,
           userId: user._id,
         },
-        updateOperations,
+        { $set: { ...newUpdatedData } },
         { new: true }
       );
       if (!data)
@@ -248,6 +257,7 @@ export class UserBagService {
         await Promise.all(
           deletedImagesKeys.map((key) => this.s3Utils.singleDelete({ key }))
         );
+        newUpdatedData.images = images;
       }
       if (primaryImage && newImages.primaryImageFileInfo) {
         const url = await this.s3Utils.singleUpload(

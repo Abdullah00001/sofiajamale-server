@@ -16,9 +16,9 @@ import { UserBagController } from '@/modules/userBag/userBag.controllers';
 import { UserBagMiddleware } from '@/modules/userBag/userBag.middlewares';
 import {
   CreateCollectionSchema,
-  PatchCollectionSchema,
   CollectionQuerySchema,
   PutCollectionSchema,
+  PatchUserCollectionSchema,
 } from '@/modules/userBag/userBag.schemas';
 
 const router = Router();
@@ -77,7 +77,7 @@ router
     authMiddleware.checkAccessToken,
     authMiddleware.checkUserAccountStatus,
     middleware.findBagCollectionById,
-    validateReqBody(PatchCollectionSchema),
+    validateReqBody(PatchUserCollectionSchema),
     controller.patchCollection
   )
   .delete(

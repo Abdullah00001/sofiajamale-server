@@ -343,7 +343,12 @@ export const PatchCollectionSchema = baseUpdateSchema
     message: 'At least one field must be provided for update',
   });
 
-export type TPatchUserCollection = z.infer<typeof PatchCollectionSchema>;
+export const PatchUserCollectionSchema = z.object({
+  updatedData: PatchCollectionSchema,
+  deletedImages: DeletedImageFieldSchema,
+});
+
+export type TPatchUserCollection = z.infer<typeof PatchUserCollectionSchema>;
 
 export type TPutUserCollection = z.infer<typeof PutCollectionSchema>;
 
