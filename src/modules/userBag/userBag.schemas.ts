@@ -275,14 +275,67 @@ export const baseUpdateSchema = z.object({
     .optional(),
 
   notes: z.union([z.string(), z.null()]).optional(),
-  deletedImageUrl: z
-    .array(
-      z.string().url({
-        error: 'Each deleted image URL must be a valid URL',
-      })
-    )
-    .optional(),
 });
+
+export const DeletedImageFieldSchema = z.object({
+  deletedImagesUrls: z
+    .array(
+      z.string().refine(
+        (val) => {
+          try {
+            new URL(val);
+            return true;
+          } catch {
+            return false;
+          }
+        },
+        {
+          message: 'Each deleted image URL must be a valid URL',
+        }
+      )
+    )
+    .optional()
+    .default([]),
+});
+
+export const PutCollectionSchema = z.object({
+  updatedData: z
+    .string({
+      error: 'updatedData must be a JSON string',
+    })
+    .transform((val, ctx) => {
+      try {
+        const parsed = JSON.parse(val);
+        return PatchCollectionSchema.parse(parsed);
+      } catch {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Invalid updatedData JSON format',
+        });
+        return z.NEVER;
+      }
+    }),
+
+  deletedImages: z
+    .string()
+    .optional()
+    .transform((val, ctx) => {
+      if (!val) return { deletedImagesUrls: [] };
+
+      try {
+        const parsed = JSON.parse(val);
+        return DeletedImageFieldSchema.parse(parsed);
+      } catch {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Invalid deletedImages JSON format',
+        });
+        return z.NEVER;
+      }
+    }),
+});
+
+export type TDeletedImageField = z.infer<typeof DeletedImageFieldSchema>;
 
 export const PatchCollectionSchema = baseUpdateSchema
   .partial()
@@ -291,6 +344,8 @@ export const PatchCollectionSchema = baseUpdateSchema
   });
 
 export type TPatchUserCollection = z.infer<typeof PatchCollectionSchema>;
+
+export type TPutUserCollection = z.infer<typeof PutCollectionSchema>;
 
 export const CollectionQuerySchema = z.object({
   // Brand filter - MongoDB ObjectId

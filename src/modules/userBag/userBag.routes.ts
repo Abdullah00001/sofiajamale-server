@@ -18,6 +18,7 @@ import {
   CreateCollectionSchema,
   PatchCollectionSchema,
   CollectionQuerySchema,
+  PutCollectionSchema,
 } from '@/modules/userBag/userBag.schemas';
 
 const router = Router();
@@ -69,7 +70,7 @@ router
     middleware.findBagCollectionById,
     uploadFields(updateCollectionImageFields, true),
     handleMulterError,
-    validateReqBody(PatchCollectionSchema),
+    validateReqBody(PutCollectionSchema),
     controller.updateCollection
   )
   .patch(

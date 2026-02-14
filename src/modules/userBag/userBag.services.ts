@@ -11,6 +11,7 @@ import {
   TCollectionQuery,
   TCreateUserCollection,
   TPatchUserCollection,
+  TPutUserCollection,
 } from '@/modules/userBag/userBag.schemas';
 import {
   IUserBag,
@@ -146,18 +147,7 @@ export class UserBagService {
     updateData?: Partial<TPatchUserCollection>;
   }): Promise<IUserBag> {
     try {
-      const { deletedImageUrl, ...dbUpdateData } = updateData || {};
-      if (deletedImageUrl && deletedImageUrl.length > 0) {
-        const invalidUrls = deletedImageUrl.filter(
-          (url) => !collection.images.includes(url)
-        );
-
-        if (invalidUrls.length > 0) {
-          throw new Error(
-            `The following URLs do not belong to this collection: ${invalidUrls.join(', ')}`
-          );
-        }
-      }
+      const { ...dbUpdateData } = updateData || {};
 
       // Build MongoDB update operations
       const updateOperations: {
@@ -170,12 +160,6 @@ export class UserBagService {
         updateOperations.$set = dbUpdateData;
       }
 
-      // Add image deletion operations
-      if (deletedImageUrl && deletedImageUrl.length > 0) {
-        updateOperations.$pull = {
-          images: { $in: deletedImageUrl },
-        };
-      }
       const data = await UserCollection.findOneAndUpdate(
         {
           _id: collection._id,
@@ -186,17 +170,6 @@ export class UserBagService {
       );
       if (!data)
         throw new Error('Something went wrong while updating the collection');
-      if (
-        updateData?.deletedImageUrl &&
-        updateData.deletedImageUrl.length > 0
-      ) {
-        const deletedImageKeys = updateData?.deletedImageUrl?.map((url) =>
-          this.systemUtils.extractS3KeyFromUrl(url)
-        );
-        await Promise.all(
-          deletedImageKeys?.map((key) => this.s3Utils.singleDelete({ key }))
-        );
-      }
       return data;
     } catch (error) {
       if (error instanceof Error) throw error;
@@ -209,25 +182,27 @@ export class UserBagService {
   async updateCollection({
     collection,
     user,
-    updateData,
+    reqData,
     bagImages,
     primaryImage,
     receiptImage,
   }: {
     user: IUser;
     collection: IUserBag;
-    updateData?: Partial<TPatchUserCollection>;
+    reqData: TPutUserCollection;
     primaryImage?: Express.Multer.File;
     receiptImage?: Express.Multer.File;
     bagImages?: Express.Multer.File[];
   }): Promise<IUserBag> {
-    const images: {
+    const newImages: {
       primaryImageFileInfo?: TFileInfo;
       receiptImageFile?: TFileInfo;
       bagImagesFileInfos?: TFileInfo[];
     } = {};
+    const { updatedData, deletedImages } = reqData as TPutUserCollection;
+    let images = [...collection.images];
     if (primaryImage) {
-      images.primaryImageFileInfo = {
+      newImages.primaryImageFileInfo = {
         filePath: join(
           __dirname,
           '../../../public/temp',
@@ -238,7 +213,7 @@ export class UserBagService {
       };
     }
     if (receiptImage) {
-      images.receiptImageFile = {
+      newImages.receiptImageFile = {
         filePath: join(
           __dirname,
           '../../../public/temp',
@@ -249,69 +224,87 @@ export class UserBagService {
       };
     }
     if (bagImages && bagImages?.length > 0) {
-      images.bagImagesFileInfos = bagImages.map((file) => ({
+      newImages.bagImagesFileInfos = bagImages.map((file) => ({
         filePath: join(__dirname, '../../../public/temp', file.filename),
         mimeType: extname(file.originalname),
         key: `user-collections/bag-image/${uuidv4()}/${Date.now()}${extname(file.originalname)}`,
       }));
     }
+    const newUpdatedData: Partial<IUserBag> = {
+      ...(updatedData as Partial<IUserBag>),
+    };
     try {
-      const changedData: Partial<IUserBag> = {
-        ...(updateData as Partial<IUserBag>),
-      };
-      if (primaryImage && images.primaryImageFileInfo) {
-        const url = await this.s3Utils.singleUpload(
-          images.primaryImageFileInfo
+      if (
+        deletedImages &&
+        deletedImages?.deletedImagesUrls &&
+        deletedImages?.deletedImagesUrls.length > 0
+      ) {
+        images = images.filter(
+          (url) => !deletedImages?.deletedImagesUrls.includes(url)
         );
-        changedData.primaryImage = url;
+        const deletedImagesKeys = deletedImages?.deletedImagesUrls.map((url) =>
+          this.systemUtils.extractS3KeyFromUrl(url)
+        );
+        await Promise.all(
+          deletedImagesKeys.map((key) => this.s3Utils.singleDelete({ key }))
+        );
       }
-      if (receiptImage && images.receiptImageFile) {
-        const url = await this.s3Utils.singleUpload(images.receiptImageFile);
-        changedData.receipt = url;
+      if (primaryImage && newImages.primaryImageFileInfo) {
+        const url = await this.s3Utils.singleUpload(
+          newImages.primaryImageFileInfo
+        );
+        newUpdatedData.primaryImage = url;
+        const oldPrimaryImageKey = this.systemUtils.extractS3KeyFromUrl(
+          collection.primaryImage
+        );
+        await this.s3Utils.singleDelete({ key: oldPrimaryImageKey });
       }
-      if (bagImages && bagImages.length > 0 && images.bagImagesFileInfos) {
+      if (receiptImage && newImages.receiptImageFile) {
+        const url = await this.s3Utils.singleUpload(newImages.receiptImageFile);
+        newUpdatedData.receipt = url;
+        if (collection?.receipt) {
+          const oldReceiptImage = this.systemUtils.extractS3KeyFromUrl(
+            collection.receipt
+          );
+          await this.s3Utils.singleDelete({ key: oldReceiptImage });
+        }
+      }
+      if (bagImages && bagImages.length > 0 && newImages.bagImagesFileInfos) {
         const urls = await Promise.all(
-          images?.bagImagesFileInfos.map((fileInfo) =>
+          newImages?.bagImagesFileInfos.map((fileInfo) =>
             this.s3Utils.singleUpload(fileInfo)
           )
         );
-        changedData.images = [...collection.images, ...urls];
+        images = [...images, ...urls];
+        newUpdatedData.images = images;
       }
 
+      // changedData.images=
       const data = await UserCollection.findOneAndUpdate(
         {
           _id: collection._id,
           userId: user._id,
         },
-        changedData,
+        { $set: { ...newUpdatedData } },
         { new: true }
       );
       if (!data)
         throw new Error('Something went wrong while updating the collection');
-      if (
-        updateData?.deletedImageUrl &&
-        updateData.deletedImageUrl.length > 0
-      ) {
-        const deletedImageKeys = updateData?.deletedImageUrl?.map((url) =>
-          this.systemUtils.extractS3KeyFromUrl(url)
-        );
-        await Promise.all(
-          deletedImageKeys?.map((key) => this.s3Utils.singleDelete({ key }))
-        );
-      }
       return data;
     } catch (error) {
-      if (primaryImage && images.primaryImageFileInfo) {
+      if (primaryImage && newImages.primaryImageFileInfo) {
         await this.s3Utils.singleDelete({
-          key: images.primaryImageFileInfo?.key,
+          key: newImages.primaryImageFileInfo?.key,
         });
       }
-      if (receiptImage && images.receiptImageFile) {
-        await this.s3Utils.singleDelete({ key: images.receiptImageFile.key });
+      if (receiptImage && newImages.receiptImageFile) {
+        await this.s3Utils.singleDelete({
+          key: newImages.receiptImageFile.key,
+        });
       }
-      if (bagImages && bagImages?.length > 0 && images.bagImagesFileInfos) {
+      if (bagImages && bagImages?.length > 0 && newImages.bagImagesFileInfos) {
         await Promise.all(
-          images.bagImagesFileInfos.map(({ key }) =>
+          newImages.bagImagesFileInfos.map(({ key }) =>
             this.s3Utils.singleDelete({ key })
           )
         );

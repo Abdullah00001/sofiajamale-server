@@ -96,7 +96,7 @@ export class UserBagController extends BaseController {
   private async _updateCollection(req: Request, res: Response): Promise<void> {
     const user = req.user as IUser;
     const collection = req.userBagCollection;
-    const updateData = req.body;
+    const reqData = req.body;
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
     const primaryImage = files?.primaryImage?.[0];
@@ -105,7 +105,7 @@ export class UserBagController extends BaseController {
     const data = await this.userBagService.updateCollection({
       user,
       collection,
-      updateData,
+      reqData,
       primaryImage,
       receiptImage,
       bagImages,
