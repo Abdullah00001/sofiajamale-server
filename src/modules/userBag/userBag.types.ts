@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 
 import { TAdminBagPriceStatus } from '@/modules/adminBag/adminBag.types';
+import { TPaginationLinks } from '@/modules/blog/blog.types';
 import { TActionLink } from '@/modules/brand/brand.types';
 
 export interface IUserBag {
@@ -44,21 +45,23 @@ export type TSkipAndLimitPipelineStage = TSkipStage | TLimitStage;
 
 export type TCollectionsActions = {
   create?: TActionLink;
-  update?: TActionLink;
+  update_with_image?: TActionLink;
+  update_only_text?: TActionLink;
   delete?: TActionLink;
-  getOne?:TActionLink;
+  getOne?: TActionLink;
 };
 
-
-export type TGetModelResponse = {
-  data: IModel[];
+export type TGetCollectionsResponse = {
+  data: IUserBag[];
   meta: {
     total: number;
+    totalValue: number;
+    averageValue: number;
     page: number;
     limit: number;
     totalPages: number;
     links: TPaginationLinks | null;
-    actions?: TBrandActions;
+    actions?: TCollectionsActions;
     showing: string;
   };
 };

@@ -331,7 +331,21 @@ export const CollectionQuerySchema = z.object({
   // Pagination
   page: z.coerce.number().int().min(1).default(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(10).optional(),
-  isArchived: z.coerce.boolean().optional(),
+  isArchived: z
+    .union([
+      z.boolean(),
+      z.literal('true'),
+      z.literal('false'),
+      z.literal('1'),
+      z.literal('0'),
+    ])
+    .transform((val) => {
+      if (typeof val === 'boolean') return val;
+      if (val === 'true' || val === '1') return true;
+      if (val === 'false' || val === '0') return false;
+      return false; // default fallback
+    })
+    .optional(),
 });
 
 export type TCollectionQuery = z.infer<typeof CollectionQuerySchema>;

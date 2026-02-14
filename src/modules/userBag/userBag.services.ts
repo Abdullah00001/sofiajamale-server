@@ -16,6 +16,7 @@ import {
   IUserBag,
   TCollectionsActions,
   TFileInfo,
+  TGetCollectionsResponse,
 } from '@/modules/userBag/userBag.types';
 import { S3Utils } from '@/utils/s3.utils';
 import { Simulation } from '@/utils/simulation.utils';
@@ -328,7 +329,7 @@ export class UserBagService {
   }: {
     user: IUser | JwtPayload;
     query: TCollectionQuery;
-  }): Promise<void> {
+  }): Promise<TGetCollectionsResponse> {
     try {
       const {
         brand,
@@ -343,10 +344,12 @@ export class UserBagService {
         valueRangeMin,
         isArchived,
       } = query;
+
       const matchStage: Record<string, any> = {
         userId: user._id,
         isArchived: isArchived ?? false,
       };
+
       if (brand) {
         matchStage.brandId = new Types.ObjectId(brand);
       }
@@ -365,15 +368,17 @@ export class UserBagService {
         };
       }
 
+      // Handle value range - ensure min <= max
       if (valueRangeMin !== undefined || valueRangeMax !== undefined) {
-        matchStage.purchasePrice = {};
+        matchStage['priceStatus.currentValue'] = {};
         if (valueRangeMin !== undefined) {
-          matchStage.purchasePrice.$gte = valueRangeMin;
+          matchStage['priceStatus.currentValue'].$gte = valueRangeMin;
         }
         if (valueRangeMax !== undefined) {
-          matchStage.purchasePrice.$lte = valueRangeMax;
+          matchStage['priceStatus.currentValue'].$lte = valueRangeMax;
         }
       }
+
       // Build sort stage
       const sortStage: Record<string, 1 | -1> = {};
 
@@ -382,32 +387,36 @@ export class UserBagService {
       }
 
       if (sortByTrending) {
-        // Assuming priceStatus determines trending
-        // 'up' = ascending by priceStatus, 'down' = descending
-        sortStage.priceStatus = sortByTrending === 'up' ? 1 : -1;
+        // Sort by trend field inside priceStatus
+        // 'up' should show 'up' trends first, 'down' should show 'down' trends first
+        if (sortByTrending === 'up') {
+          // For 'up': prioritize 'up' trend over 'down' (descending alphabetically)
+          sortStage['priceStatus.trend'] = -1; // 'up' comes before 'down'
+          sortStage['priceStatus.changePercentage'] = -1; // Higher percentages first
+        } else {
+          // For 'down': prioritize 'down' trend over 'up' (ascending alphabetically)
+          sortStage['priceStatus.trend'] = 1; // 'down' comes before 'up'
+          sortStage['priceStatus.changePercentage'] = 1; // Lower (more negative) first
+        }
       }
 
       // Default sort by createdAt descending if no sort specified
       if (Object.keys(sortStage).length === 0) {
         sortStage.createdAt = -1;
       }
+
       const page = queryPage ?? 1;
       const limit = queryLimit ?? 10;
       const skip = (page - 1) * limit;
-      // output need total bags/collections,total value,average value
-      const [result] = await UserCollection.aggregate([
-        // Match user's collections with filters
-        { $match: matchStage },
 
-        // Facet for parallel processing
+      const [result] = await UserCollection.aggregate([
+        { $match: matchStage },
         {
           $facet: {
-            // Get paginated collections
             collections: [
               { $sort: sortStage },
               { $skip: skip },
               { $limit: limit },
-              // Lookup brand information
               {
                 $lookup: {
                   from: 'brands',
@@ -422,7 +431,6 @@ export class UserBagService {
                   preserveNullAndEmptyArrays: true,
                 },
               },
-              // Lookup model information
               {
                 $lookup: {
                   from: 'models',
@@ -452,7 +460,6 @@ export class UserBagService {
                 },
               },
             ],
-            // Get metadata (totals and averages)
             metadata: [
               {
                 $group: {
@@ -468,12 +475,18 @@ export class UserBagService {
       ]);
 
       const data = result.collections || [];
-      const metaData = result.metadata[0];
-      const totalPages = Math.ceil(metaData.totalBags / limit);
-      // Calculate showing range
+      const metaData = result.metadata[0] || {
+        _id: null,
+        totalBags: 0,
+        totalValue: 0,
+        averageValue: 0,
+      };
+
+      const totalPages = Math.ceil(metaData.totalBags / limit) || 0;
       const from = metaData.totalBags === 0 ? 0 : skip + 1;
       const to = Math.min(skip + limit, metaData.totalBags);
       const showing = `Showing ${from} to ${to} of ${metaData.totalBags} results`;
+
       const isAdmin = user.role === 'admin';
       const basePath = isAdmin ? '/admin/collections' : '/collections';
       const actions: TCollectionsActions = {
@@ -483,12 +496,19 @@ export class UserBagService {
               href: `${basePath}`,
               method: 'POST',
             },
-        update:
+        update_with_image:
           isAdmin && data.length > 0
             ? undefined
             : {
                 href: `${basePath}/:id`,
                 method: 'PUT',
+              },
+        update_only_text:
+          isAdmin && data.length > 0
+            ? undefined
+            : {
+                href: `${basePath}/:id`,
+                method: 'PATCH',
               },
         delete: {
           href: `${basePath}/:id`,
@@ -500,7 +520,9 @@ export class UserBagService {
         return {
           data,
           meta: {
-            total,
+            total: metaData.totalBags,
+            totalValue: metaData.totalValue,
+            averageValue: metaData.averageValue,
             page,
             limit,
             totalPages,
@@ -510,14 +532,54 @@ export class UserBagService {
           },
         };
       }
-      /**
-       * TODO
-       * [ ] return response implentation
-       */
+
+      const buildLink = (pageNum: number): string => {
+        const params = new URLSearchParams();
+        params.set('page', pageNum.toString());
+        params.set('limit', limit.toString());
+
+        if (brand) params.set('brand', brand);
+        if (latherType) params.set('latherType', latherType);
+        if (productionYear)
+          params.set('productionYear', productionYear.toString());
+        if (purchaseYear) params.set('purchaseYear', purchaseYear.toString());
+        if (valueRangeMin !== undefined)
+          params.set('valueRangeMin', valueRangeMin.toString());
+        if (valueRangeMax !== undefined)
+          params.set('valueRangeMax', valueRangeMax.toString());
+        if (sortByCreatedAt)
+          params.set('sortByCreatedAt', sortByCreatedAt.toString());
+        if (sortByTrending) params.set('sortByTrending', sortByTrending);
+        if (isArchived !== undefined)
+          params.set('isArchived', isArchived.toString());
+
+        return `${basePath}?${params.toString()}`;
+      };
+
+      return {
+        data,
+        meta: {
+          total: metaData.totalBags,
+          totalValue: metaData.totalValue,
+          averageValue: metaData.averageValue,
+          page,
+          limit,
+          totalPages,
+          links: {
+            first: buildLink(1),
+            last: buildLink(totalPages),
+            previous: page > 1 ? buildLink(page - 1) : null,
+            next: page < totalPages ? buildLink(page + 1) : null,
+            current: buildLink(page),
+          },
+          actions,
+          showing,
+        },
+      };
     } catch (error) {
       if (error instanceof Error) throw error;
       throw new Error(
-        'An Unexpected Error Occurred In Update Collection Service'
+        'An Unexpected Error Occurred In Get All Collections Service'
       );
     }
   }

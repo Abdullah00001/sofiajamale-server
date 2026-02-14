@@ -122,11 +122,12 @@ export class UserBagController extends BaseController {
   private async _getUserCollection(req: Request, res: Response): Promise<void> {
     const user = req.user as IUser;
     const query = req.validatedQuery as TCollectionQuery;
-    await this.userBagService.getAllCollections({ query, user });
+    const data = await this.userBagService.getAllCollections({ query, user });
     res.status(200).json({
       success: true,
       status: 200,
       message: 'Collection retrieved successfully',
+      ...data,
     });
     return;
   }
