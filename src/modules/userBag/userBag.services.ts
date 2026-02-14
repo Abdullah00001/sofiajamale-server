@@ -469,7 +469,7 @@ export class UserBagService {
                   _id: null,
                   totalBags: { $sum: 1 },
                   totalValue: { $sum: '$priceStatus.currentValue' },
-                  averageValue: { $avg: '$priceStatus.currentValue' },
+                  totalCost: { $sum: 'purchasePrice' },
                 },
               },
             ],
@@ -525,7 +525,7 @@ export class UserBagService {
           meta: {
             total: metaData.totalBags,
             totalValue: metaData.totalValue,
-            averageValue: metaData.averageValue,
+            totalCost: metaData.totalCost,
             page,
             limit,
             totalPages,
@@ -564,7 +564,7 @@ export class UserBagService {
         meta: {
           total: metaData.totalBags,
           totalValue: metaData.totalValue,
-          averageValue: metaData.averageValue,
+          totalCost: metaData.totalCost,
           page,
           limit,
           totalPages,

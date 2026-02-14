@@ -4,6 +4,7 @@ import AdminBagRoutes from '@/modules/adminBag/adminBag.routes';
 import AuthRoutes from '@/modules/auth/auth.routes';
 import BlogRoutes from '@/modules/blog/blog.routes';
 import BrandRoutes from '@/modules/brand/brand.routes';
+import DashboardRoutes from '@/modules/dashboard/dashboard.routes';
 import LegalRoutes from '@/modules/legal/legal.routes';
 import ModelRoutes from '@/modules/model/model.routes';
 import ProfileRoutes from '@/modules/profile/profile.routes';
@@ -22,6 +23,7 @@ const routes: Router[] = [
   AdminBagRoutes,
   WishlistRoutes,
   UserBagRoutes,
+  DashboardRoutes,
 ];
 
 const v1Routes = Router();

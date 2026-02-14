@@ -56,7 +56,7 @@ export type TGetCollectionsResponse = {
   meta: {
     total: number;
     totalValue?: number;
-    averageValue?: number;
+    totalCost?: number;
     page: number;
     limit: number;
     totalPages: number;
