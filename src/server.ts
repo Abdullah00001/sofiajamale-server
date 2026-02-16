@@ -10,6 +10,7 @@ import registerContainers from '@/container';
 import { startWorkers } from '@/queue/workers/index';
 import { shutdown } from '@/utils/index';
 import '@/queue/container';
+import '@/jobs/index'
 
 const { config } = dotenv;
 
