@@ -21,7 +21,7 @@ export class ProfileService {
     private readonly systemUtils: SystemUtils,
     private readonly passwordUtils: PasswordUtils
   ) {}
-  
+
   async uploadAvatar({
     fileName,
     user,
@@ -57,6 +57,7 @@ export class ProfileService {
       if (user.avatar) {
         const key = this.systemUtils.extractS3KeyFromUrl(user.avatar);
         await this.s3Utils.singleDelete({ key });
+        await User.findByIdAndUpdate(user._id, { $set: { avatar: null } });
       }
     } catch (error) {
       if (error instanceof Error) throw error;
