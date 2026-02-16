@@ -60,20 +60,20 @@ echo -e "${CYAN}🚀 Creating optimized production build...${NC}"
 echo ""
 
 # Step 1: Linting and validation
-# if ! run_with_spinner \
-#     "${YELLOW}🔍 Linting and validating code..." \
-#     "npm run lint" \
-#     "Passed linting and validation step! 🎯" \
-#     "Build failed due to linting errors! 💥"; then
-#     exit 1
-# fi
+if ! run_with_spinner \
+    "${YELLOW}🔍 Linting and validating code..." \
+    "npm run lint" \
+    "Passed linting and validation step! 🎯" \
+    "Build failed due to linting errors! 💥"; then
+    exit 1
+fi
 
-# echo ""
+echo ""
 
 # Step 2: Compiling TypeScript
 if ! run_with_spinner \
     "${CYAN}⚙️  Compiling TypeScript..." \
-    "npx tsc --project tsconfig.json" \
+    "tsc" \
     "TypeScript compilation finished! 📦" \
     "Build failed due to compilation errors! 🔥"; then
     exit 1

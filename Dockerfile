@@ -49,6 +49,8 @@ COPY --from=builder --chown=nodejs:nodejs /usr/src/app/dist ./dist
 # Copy package.json for metadata
 COPY --from=builder --chown=nodejs:nodejs /usr/src/app/package.json ./
 
+RUN mkdir -p logs && chown -R nodejs:nodejs logs  
+
 # Switch to non-root user
 USER nodejs
 

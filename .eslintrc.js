@@ -19,6 +19,14 @@ module.exports = {
     'plugin:import/typescript',
     'prettier',
   ],
+  settings: {
+    'import/resolver': {
+      typescript: {
+        alwaysTryTypes: true,
+        project: './tsconfig.json',
+      },
+    },
+  },
   rules: {
     // TypeScript rules
     '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
@@ -61,5 +69,5 @@ module.exports = {
     'no-debugger': 'warn',
     'no-useless-escape': 'off',
   },
-  ignorePatterns: ['dist/', 'node_modules/', 'scripts/', ],
+  ignorePatterns: ['dist/', 'node_modules/', 'scripts/',],
 };
