@@ -73,7 +73,7 @@ echo ""
 # Step 2: Compiling TypeScript
 if ! run_with_spinner \
     "${CYAN}⚙️  Compiling TypeScript..." \
-    "tsc --project tsconfig.json" \
+    "npx tsc --project tsconfig.json" \
     "TypeScript compilation finished! 📦" \
     "Build failed due to compilation errors! 🔥"; then
     exit 1
