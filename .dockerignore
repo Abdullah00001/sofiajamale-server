@@ -1,0 +1,26 @@
+# Version control
+.git/
+.github/
+.gitignore
+
+# Dependencies (installed in container)
+node_modules/
+
+# Build outputs (built in container)
+dist/
+build/
+coverage/
+
+# Development files and logs
+.vscode/
+*.log
+npm-debug.log*
+.eslintcache
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Docker-specific files that don't need to be in the final image
+Dockerfile
+*docker-compose*
