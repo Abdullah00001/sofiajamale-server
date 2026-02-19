@@ -1,6 +1,6 @@
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import express, { Application, Request, Response } from 'express';
+import express, { Application, Request, Response,json,urlencoded } from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 
@@ -13,8 +13,8 @@ import v1Routes from '@/routes/v1/index';
 
 const app: Application = express();
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(json());
+app.use(urlencoded({ extended: true }));
 app.set('trust proxy', 1);
 app.use(cookieParser());
 app.use(cors(corsConfiguration));
