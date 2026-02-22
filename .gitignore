@@ -143,3 +143,9 @@ dist
 
 # End of https://www.toptal.com/developers/gitignore/api/node
 /src/generated/prisma
+
+# For Development Branch
+.dockerignore
+docker-compose.yaml
+Dockerfile
+Dockerfile.dev

@@ -2,7 +2,7 @@ import 'reflect-metadata';
 
 import { createServer, Server } from 'node:http';
 
-import dotenv from 'dotenv';
+import {config} from 'dotenv';
 
 import connectDatabase from '@/configs/db.config';
 import { connectRedis, initializeRedis } from '@/configs/redis.config';
@@ -10,9 +10,7 @@ import registerContainers from '@/container';
 import { startWorkers } from '@/queue/workers/index';
 import { shutdown } from '@/utils/index';
 import '@/queue/container';
-import '@/jobs/index'
-
-const { config } = dotenv;
+import '@/jobs/index';
 
 // dotenv config initialization
 config();
@@ -32,8 +30,10 @@ async function main(): Promise<void> {
   await connectDatabase();
   await connectRedis();
   startWorkers();
-  server.listen(port, () => {
-    console.log(`Server Running On Port : ${port}`);
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`🚀 Server ready!`);
+    console.log(`🏠 Local:   http://localhost:${port}`);
+    console.log(`🌐 Network: http://10.10.10.28:${port}`);
   });
 }
 

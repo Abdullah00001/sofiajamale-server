@@ -1,4 +1,4 @@
-import cron from 'node-cron';
+import {schedule} from 'node-cron';
 import { container } from 'tsyringe';
 
 import { logger } from '@/configs';
@@ -6,10 +6,9 @@ import User from '@/modules/auth/auth.model';
 import { S3Utils } from '@/utils/s3.utils';
 import { SystemUtils } from '@/utils/system.utils';
 
-const s3Utils = container.resolve(S3Utils);
-const systemUtils = container.resolve(SystemUtils);
-
 const cleanupUnverifiedUsers = async (): Promise<void> => {
+  const s3Utils = container.resolve(S3Utils);
+  const systemUtils = container.resolve(SystemUtils);
   const now = new Date();
   const thresholdDate = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000);
   try {
@@ -57,7 +56,7 @@ const cleanupUnverifiedUsers = async (): Promise<void> => {
   }
 };
 
-cron.schedule('0 0 * * *', () => {
+schedule('0 0 * * *', () => {
   cleanupUnverifiedUsers().catch((error) => {
     logger.error(
       '[unverified user cleanup] Unhandled error in cron job:',
