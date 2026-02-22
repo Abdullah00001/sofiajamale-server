@@ -67,7 +67,7 @@ export class AuthController extends BaseController {
     res.status(200).json({
       success: true,
       message: 'otp verification successful',
-      data: accessToken,
+      accessToken,
     });
     return;
   }
@@ -82,13 +82,14 @@ export class AuthController extends BaseController {
   }
 
   private async _login(req: Request, res: Response): Promise<void> {
-    const { accessToken } = await this.authService.login({
+    const { accessToken,data } = await this.authService.login({
       user: req.user as IUser,
     });
     res.status(200).json({
       success: true,
       message: 'login successful',
-      data: accessToken,
+      data,
+      accessToken,
     });
     return;
   }

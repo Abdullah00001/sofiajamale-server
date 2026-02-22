@@ -141,8 +141,9 @@ export class AuthService {
     }
   }
 
-  async login({ user }: { user: IUser }): Promise<{ accessToken: string }> {
+  async login({ user }: { user: IUser }): Promise<{ accessToken: string,data:CreateUserResponseDTO }> {
     try {
+      const data=CreateUserResponseDTO.fromEntity(user)
       const accessToken = this.jwtUtils.generateAccessTokenForUser({
         accountStatus: user?.accountStatus,
         isVerified: user?.isVerified,
@@ -150,7 +151,7 @@ export class AuthService {
         sub: String(user?._id),
         rememberMe: user?.rememberMe,
       });
-      return { accessToken };
+      return { accessToken,data };
     } catch (error) {
       if (error instanceof Error) {
         throw error;
