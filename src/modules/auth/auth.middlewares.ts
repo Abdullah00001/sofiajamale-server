@@ -206,6 +206,7 @@ export class AuthMiddleware extends BaseMiddleware {
       return;
     }
     const redisClient = getRedisClient();
+    console.log(token)
     const isBlackListed = await redisClient.get(`blacklist:jwt:${token}`);
     if (isBlackListed) {
       res.status(401).json({

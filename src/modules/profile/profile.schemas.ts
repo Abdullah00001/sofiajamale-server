@@ -39,7 +39,6 @@ export const updateUserProfileInfoSchema = z
 
     location: z
       .string()
-      .min(1, 'Location cannot be empty')
       .optional()
       .or(z.literal(null)),
 

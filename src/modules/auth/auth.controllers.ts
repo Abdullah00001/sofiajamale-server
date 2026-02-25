@@ -82,7 +82,7 @@ export class AuthController extends BaseController {
   }
 
   private async _login(req: Request, res: Response): Promise<void> {
-    const { accessToken,data } = await this.authService.login({
+    const { accessToken, data } = await this.authService.login({
       user: req.user as IUser,
     });
     res.status(200).json({
@@ -101,7 +101,9 @@ export class AuthController extends BaseController {
     res.status(200).json({
       success: true,
       message: 'User found',
-      data: jwt,
+      data: {
+        jwtToken: jwt,
+      },
     });
     return;
   }
